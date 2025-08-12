@@ -19,9 +19,9 @@ Zerot is a powerful TypeScript library that brings the principles of Design by C
 ## Installation
 
 ```bash
-npm install zerot
+npm install zerot zod
 # or
-yarn add zerot
+yarn add zerot zod
 ```
 
 ## Usage
@@ -32,7 +32,7 @@ First, set up a session provider that `Zerot` can use to retrieve the authentica
 
 ```typescript
 // lib/auth/sessionProvider.ts
-import { setSessionProvider, AuthContext } from "zerot";
+import { setSessionProvider, AuthContext } from "zerot/core";
 import { getServerSession } from "./config"; // Your actual session retrieval logic
 
 export async function configureAuthContext() {
@@ -71,16 +71,17 @@ Use the `@contract` decorator on your class methods. You can define `requires`, 
 // lib/actions/users.ts (Example using Next.js Server Actions)
 "use server"; // Required for Next.js Server Actions
 
+import { contract } from "zerot/core";
 import {
-  contract,
   auth,
   validates,
   rateLimit,
   auditLog,
   owns,
   returns,
-} from "zerot";
-import type { AuthContext } from "zerot";
+  businessRule,
+} from "zerot/conditions";
+import type { AuthContext } from "zerot/core";
 import { z } from "zod"; // Assuming you use Zod for validation
 
 // Define your schemas (e.g., using Zod)
@@ -235,7 +236,7 @@ A decorator to apply Design by Contract principles to methods.
 
 Zerot provides several built-in conditions:
 
-- `auth(requiredRole?: string | string[])`: Checks if a user is authenticated and optionally has a specific role.
+- `auth(requiredRole?: string)`: Checks if a user is authenticated and optionally has a specific role.
 - `owns(property: string)`: Checks if the authenticated user owns the resource identified by `property` in the input.
 - `validates(schema: ZodSchema)`: Validates the input against a Zod schema. Can also transform the input.
 - `returns(schema: ZodSchema)`: Validates the method's return value against a Zod schema.
@@ -243,10 +244,16 @@ Zerot provides several built-in conditions:
 - `auditLog(eventName: string)`: Logs an audit event after the method executes.
 - `businessRule(ruleFn: (input: any, context: AuthContext) => boolean | Promise<boolean>)`: Allows defining custom business rules as conditions.
 
+### Utilities
+
+- `ContractDebugger`: Provides debugging capabilities for contracts.
+- `ContractPerformanceMonitor`: Monitors the performance of contract executions.
+- `OptimizedContractSystem`: Offers optimizations for contract execution.
+
 ### Integrations
 
-- `createServerAction<TInput, TOutput>(actionFn: (input: TInput, context: AuthContext) => Promise<TOutput> | TOutput)`: Wraps a Next.js Server Action to integrate with Zerot's contract system.
-- `withContractMiddleware(handler: Function)`: Wraps a Next.js Middleware function to handle `ContractViolationError`s.
+- `createServerAction`: Wraps a Next.js Server Action to integrate with Zerot's contract system.
+- `withContractMiddleware`: Wraps a Next.js Middleware function to handle `ContractViolationError`s.
 
 ### Types
 
@@ -262,4 +269,5 @@ Contributions are welcome! Please feel free to open issues or submit pull reques
 ## License
 
 This project is licensed under the MIT License.
+
 # zerot
