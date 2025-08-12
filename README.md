@@ -1,5 +1,8 @@
 # Zerot: Design by Contract for TypeScript
 
+https://meta-closure.github.io/zerot/
+[![pages-build-deployment](https://github.com/meta-closure/zerot/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/meta-closure/zerot/actions/workflows/pages/pages-build-deployment)
+
 Zerot is a powerful TypeScript library that brings the principles of Design by Contract (DbC) to your applications, with a strong focus on robust backend logic and seamless integration with Next.js Server Actions and Middleware. It allows you to define clear pre-conditions, post-conditions, and invariants for your methods, ensuring predictable behavior and enhancing code reliability.
 
 ## Features
