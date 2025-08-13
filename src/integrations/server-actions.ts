@@ -1,6 +1,7 @@
 import { ContractViolationError } from "../core/errors";
 import { getAuthContext } from "../core/types";
 import { redirect } from "next/navigation"; // Assuming Next.js environment
+import { logger } from "../utils/logger";
 
 /**
  * Helper to integrate Next.js Server Actions with the contract system.
@@ -32,17 +33,17 @@ import { redirect } from "next/navigation"; // Assuming Next.js environment
  * class PostActions {
  *   @contract({
  *     requires: [auth("user"), validates(CreatePostSchema)],
- *   })
- *   async createPost(input: z.infer<typeof CreatePostSchema>, context: any) {
- *     console.log("Creating post:", input, "by user:", context.user?.id);
- *     // Logic to save post to DB
- *     return { postId: "new-post-id", ...input };
- *   }
- * }
- *
- * export const createPostAction = createServerAction(new PostActions().createPost);
- * ```
- */
+   *   })
+   *   async createPost(input: z.infer<typeof CreatePostSchema>, context: any) {
+   *     logger.debug(`Creating post: ${JSON.stringify(input)} by user: ${context.user?.id}`);
+   *     // Logic to save post to DB
+   *     return { postId: "new-post-id", ...input };
+   *   }
+   * }
+   *
+   * export const createPostAction = createServerAction(new PostActions().createPost);
+   * ```
+   */
 export function createServerAction<TInput, TOutput>(
   actionFn: (input: TInput, context: any) => Promise<TOutput> | TOutput
 ) {
@@ -66,7 +67,7 @@ export function createServerAction<TInput, TOutput>(
         return response;
       }
 
-      console.error("Unexpected error in server action:", error);
+      logger.error("Unexpected error in server action:", error as Error);
       return { success: false, error: "An unexpected error occurred." };
     }
   };

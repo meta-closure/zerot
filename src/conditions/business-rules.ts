@@ -1,5 +1,6 @@
 import { ContractError, ErrorCategory } from "../core/errors";
 import { AuthContext } from "../core/types";
+import { logger } from "../utils/logger";
 
 /**
  * Creates a business rule condition.
@@ -31,7 +32,7 @@ import { AuthContext } from "../core/types";
  *   })
  *   async placeOrder(order: { userId: string; value: number }, context: AuthContext) {
  *     // Logic to place the order
- *     console.log(`Order placed for user ${order.userId} with value ${order.value}`);
+ *     logger.debug(`Order placed for user ${order.userId} with value ${order.value}`);
  *   }
  * }
  * ```

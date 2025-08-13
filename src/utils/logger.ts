@@ -2,6 +2,8 @@
  * Defines the interface for a logger.
  * This interface ensures consistency across different logging implementations.
  */
+import { zerotConfig } from "../config";
+
 export interface Logger {
   /**
    * Logs an informational message.
@@ -40,14 +42,24 @@ class ConsoleLogger implements Logger {
    * @param message - The message to log.
    * @param metadata - Optional metadata to include with the log.
    */
-  private log(level: string, message: string, metadata?: Record<string, any>): void {
-    const logEntry = {
-      timestamp: new Date().toISOString(),
-      level: level.toUpperCase(),
-      message,
-      ...(metadata && Object.keys(metadata).length > 0 && { metadata }),
+  private log(level: 'debug' | 'info' | 'warn' | 'error', message: string, metadata?: Record<string, any>): void {
+    const currentLogLevel = zerotConfig.get('logLevel');
+    const levels = {
+      'debug': 0,
+      'info': 1,
+      'warn': 2,
+      'error': 3
     };
-    console.log(JSON.stringify(logEntry));
+
+    if (levels[level] >= levels[currentLogLevel]) {
+      const logEntry = {
+        timestamp: new Date().toISOString(),
+        level: level.toUpperCase(),
+        message,
+        ...(metadata && Object.keys(metadata).length > 0 && { metadata }),
+      };
+      console.log(JSON.stringify(logEntry));
+    }
   }
 
   /**
@@ -78,12 +90,12 @@ class ConsoleLogger implements Logger {
   }
 
   /**
-   * Logs a debug message. This method only logs if `process.env.NODE_ENV` is "development".
+   * Logs a debug message. This method only logs if `enableDebugMode` is true in config.
    * @param message - The message to log.
    * @param metadata - Optional metadata to include with the log.
    */
   debug(message: string, metadata?: Record<string, any>): void {
-    if (process.env.NODE_ENV === "development") {
+    if (zerotConfig.get('enableDebugMode')) {
       this.log("debug", message, metadata);
     }
   }

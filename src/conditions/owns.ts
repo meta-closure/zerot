@@ -1,5 +1,6 @@
 import { ContractError, ErrorCategory } from "../core/errors";
 import { AuthContext, getResource } from "../core/types"; // Import getResource
+import { logger } from "../utils/logger";
 
 /**
  * Creates an ownership check condition.
@@ -26,7 +27,7 @@ import { AuthContext, getResource } from "../core/types"; // Import getResource
  *   })
  *   async editDocument(input: { documentId: string; content: string }, context: AuthContext) {
  *     // Only the owner of the document (or an admin) can edit it
- *     console.log(`User ${context.user?.id} editing document ${input.documentId}`);
+ *     logger.debug(`User ${context.user?.id} editing document ${input.documentId}`);
  *   }
  * }
  * ```

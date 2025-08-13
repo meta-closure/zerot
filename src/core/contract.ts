@@ -2,7 +2,6 @@ import {
   ContractOptions,
   getAuthContext,
   ContractCondition,
-  ContractValidator,
   ContractEnsuresCondition,
   ContractInvariant,
   AuthContext,

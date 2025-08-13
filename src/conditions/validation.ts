@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ContractError, ErrorCategory } from "../core/errors";
 import { ContractValidator, ContractEnsuresCondition } from "../core/types"; // Import generic types
+import { logger } from "../utils/logger";
 
 /**
  * Creates a validation condition that uses a Zod schema to validate and optionally transform input.
@@ -24,7 +25,7 @@ import { ContractValidator, ContractEnsuresCondition } from "../core/types"; // 
  *   })
  *   async processUser(user: z.infer<typeof UserSchema>) {
  *     // user is guaranteed to conform to UserSchema here
- *     console.log("Processing user:", user);
+ *     logger.debug(`Processing user: ${JSON.stringify(user)}`);
  *   }
  * }
  * ```

@@ -1,39 +1,7 @@
 import { ContractError, ErrorCategory } from "../core/errors";
 import { AuthContext } from "../core/types";
-
-// Placeholder for rate limit storage (e.g., Redis)
-// In a real application, these would interact with a persistent store.
-const rateLimitStore = new Map<string, { count: number; lastReset: number }>();
-
-/**
- * Retrieves the current rate limit count for a given key within a specified window.
- * If the window has expired, the count is reset.
- * @param key - The unique key for the rate limit (e.g., "userId:operation").
- * @param windowMs - The time window in milliseconds.
- * @returns A Promise that resolves to the current count.
- */
-async function getRateLimitCount(key: string, windowMs: number): Promise<number> {
-  const entry = rateLimitStore.get(key);
-  if (!entry || (Date.now() - entry.lastReset) > windowMs) { // Reset based on configured windowMs
-    rateLimitStore.set(key, { count: 0, lastReset: Date.now() });
-    return 0;
-  }
-  return entry.count;
-}
-
-/**
- * Increments the rate limit count for a given key.
- * @param key - The unique key for the rate limit.
- * @returns A Promise that resolves once the count is incremented.
- */
-async function incrementRateLimitCount(key: string): Promise<void> {
-  const entry = rateLimitStore.get(key);
-  if (entry) {
-    entry.count++;
-  } else {
-    rateLimitStore.set(key, { count: 1, lastReset: Date.now() });
-  }
-}
+import { zerotConfig } from "../config";
+import { logger } from "../utils/logger";
 
 /**
  * Creates a rate limiting condition.
@@ -53,7 +21,7 @@ async function incrementRateLimitCount(key: string): Promise<void> {
  *   })
  *   async addComment(comment: { postId: string; text: string }, context: AuthContext) {
  *     // Logic to add comment
- *     console.log(`User ${context.user?.id} added comment to post ${comment.postId}`);
+ *     logger.debug(`User ${context.user?.id} added comment to post ${comment.postId}`);
  *   }
  * }
  *
@@ -69,7 +37,7 @@ async function incrementRateLimitCount(key: string): Promise<void> {
  */
 export function rateLimit(operation: string, maxPerWindow: number, windowMs?: number) {
   return async (input: any, context: AuthContext): Promise<boolean> => {
-    const effectiveWindowMs = windowMs || 60 * 1000; // Default to 1 minute
+    const effectiveWindowMs = windowMs || zerotConfig.get('defaultRateLimitWindow');
 
     if (!context.user?.id) {
       // If the user is not authenticated, either don't apply rate limiting or handle it differently.
@@ -80,7 +48,16 @@ export function rateLimit(operation: string, maxPerWindow: number, windowMs?: nu
       });
     }
     const key = `rateLimit:${context.user.id}:${operation}`;
-    const current = await getRateLimitCount(key, effectiveWindowMs);
+    const store = zerotConfig.get('customRateLimitStore');
+    
+    const entry = await store.get(key);
+    const now = Date.now();
+
+    if (!entry || (now - entry.lastReset) > effectiveWindowMs) { // Reset based on configured windowMs
+      await store.set(key, { count: 0, lastReset: now });
+    }
+    
+    const current = (await store.get(key))?.count || 0;
 
     if (current >= maxPerWindow) {
       throw new ContractError(
@@ -94,7 +71,7 @@ export function rateLimit(operation: string, maxPerWindow: number, windowMs?: nu
       );
     }
 
-    await incrementRateLimitCount(key);
+    await store.increment(key);
     return true;
   };
 }
