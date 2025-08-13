@@ -20,8 +20,9 @@
     "type-check": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
-    "docs:build": "typedoc src/index.ts --out docs --theme default",
-    "docs:serve": "npx http-server docs -p 8080",
+    "docs": "typedoc src --out docs --excludePrivate --excludeProtected",
+    "docs:serve": "npx serve docs",
+    "docs:watch": "typedoc src --out docs --watch",
     "prepack": "npm run build:clean && npm run test:run && npm run lint && npm run type-check",
     "prepublishOnly": "npm run prepack"
   },
