@@ -1,20 +1,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { contract } from 'zerot/core/contract';
-import { ContractError, ContractViolationError, ErrorCategory } from 'zerot/core/errors';
-import { AuthContext } from 'zerot/core/types';
+import { contract } from '~/core/contract';
+import { ContractError, ContractViolationError, ErrorCategory } from '~/core/errors';
+import { AuthContext } from '~/core/types';
 
 // Mock dependencies
-vi.mock('zerot/utils/delay', () => ({
+vi.mock('~/utils/delay', () => ({
   delay: vi.fn((ms: number) => Promise.resolve())
 }));
 
-vi.mock('zerot/utils/logger', () => ({
+vi.mock('~/utils/logger', () => ({
   logger: {
     warn: vi.fn()
   }
 }));
 
-vi.mock('zerot/utils/type-guards', () => ({
+vi.mock('~/utils/type-guards', () => ({
   isValidator: vi.fn()
 }));
 
@@ -23,10 +23,10 @@ vi.mock('./types', () => ({
   AuthContext: {}
 }));
 
-import { delay } from 'zerot/utils/delay';
-import { logger } from 'zerot/utils/logger';
-import { isValidator } from 'zerot/utils/type-guards';
-import { getAuthContext } from 'zerot/core/types';
+import { delay } from '~/utils/delay';
+import { logger } from '~/utils/logger';
+import { isValidator } from '~/utils/type-guards';
+import { getAuthContext } from '~/core/types';
 
 // Test types
 interface TestInput {

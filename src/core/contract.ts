@@ -5,11 +5,11 @@ import {
   ContractEnsuresCondition,
   ContractInvariant,
   AuthContext,
-} from "zerot/core/types";
-import { ContractError, ContractViolationError, ErrorCategory } from "zerot/core/errors";
-import { delay } from "zerot/utils/delay";
-import { logger } from "zerot/utils/logger";
-import { isValidator } from "zerot/utils/type-guards";
+} from "~/core/types";
+import { ContractError, ContractViolationError, ErrorCategory } from "~/core/errors";
+import { delay } from "~/utils/delay";
+import { logger } from "~/utils/logger";
+import { isValidator } from "~/utils/type-guards";
 
 /**
  * The main contract decorator.

@@ -1,6 +1,6 @@
-import { ContractError, ErrorCategory } from "zerot/core/errors";
-import { AuthContext, getResource } from "zerot/core/types"; // Import getResource
-import { logger } from "zerot/utils/logger";
+import { ContractError, ErrorCategory } from "~/core/errors";
+import { AuthContext, getResource } from "~/core/types"; // Import getResource
+import { logger } from "~/utils/logger";
 
 /**
  * Creates an ownership check condition.

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ContractError, ErrorCategory } from "zerot/core/errors";
+import { ContractError, ErrorCategory } from "~/core/errors";
 
 /**
  * Type guard to check if a condition is a validator.

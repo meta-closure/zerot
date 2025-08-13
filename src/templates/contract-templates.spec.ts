@@ -1,36 +1,36 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ContractTemplates } from 'zerot/templates/contract-templates';
-import { ContractError, ErrorCategory } from 'zerot/core/errors';
-import { AuthContext } from 'zerot/core/types';
+import { ContractTemplates } from '~/templates/contract-templates';
+import { ContractError, ErrorCategory } from '~/core/errors';
+import { AuthContext } from '~/core/types';
 
 // モック関数
-vi.mock('zerot/conditions/auth', () => ({
+vi.mock('~/conditions/auth', () => ({
   auth: vi.fn((role?: string) => vi.fn().mockResolvedValue(true))
 }));
 
-vi.mock('zerot/conditions/validation', () => ({
+vi.mock('~/conditions/validation', () => ({
   validates: vi.fn((schema) => vi.fn().mockReturnValue({})),
   returns: vi.fn((schema) => vi.fn().mockReturnValue(true))
 }));
 
-vi.mock('zerot/conditions/owns', () => ({
+vi.mock('~/conditions/owns', () => ({
   owns: vi.fn((field) => vi.fn().mockResolvedValue(true))
 }));
 
-vi.mock('zerot/conditions/rate-limit', () => ({
+vi.mock('~/conditions/rate-limit', () => ({
   rateLimit: vi.fn((operation, limit) => vi.fn().mockResolvedValue(true))
 }));
 
-vi.mock('zerot/conditions/audit', () => ({
+vi.mock('~/conditions/audit', () => ({
   auditLog: vi.fn((operation) => vi.fn().mockResolvedValue(true))
 }));
 
 // モック関数をインポート
-import { auth } from 'zerot/conditions/auth';
-import { validates, returns } from 'zerot/conditions/validation';
-import { owns } from 'zerot/conditions/owns';
-import { rateLimit } from 'zerot/conditions/rate-limit';
-import { auditLog } from 'zerot/conditions/audit';
+import { auth } from '~/conditions/auth';
+import { validates, returns } from '~/conditions/validation';
+import { owns } from '~/conditions/owns';
+import { rateLimit } from '~/conditions/rate-limit';
+import { auditLog } from '~/conditions/audit';
 
 describe('ContractTemplates', () => {
   let mockContext: AuthContext;

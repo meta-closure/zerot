@@ -1,41 +1,41 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ContractHelpers, ExtendedContractTemplates } from 'zerot/templates/contract-helpers';
-import { ContractOptions } from 'zerot/core/types';
+import { ContractHelpers, ExtendedContractTemplates } from '~/templates/contract-helpers';
+import { ContractOptions } from '~/core/types';
 import { z } from 'zod';
 
 // Mock all the condition modules
-vi.mock('zerot/conditions/auth', () => ({
+vi.mock('~/conditions/auth', () => ({
   auth: vi.fn((role?: string) => vi.fn().mockResolvedValue(true))
 }));
 
-vi.mock('zerot/conditions/owns', () => ({
+vi.mock('~/conditions/owns', () => ({
   owns: vi.fn((field) => vi.fn().mockResolvedValue(true))
 }));
 
-vi.mock('zerot/conditions/validation', () => ({
+vi.mock('~/conditions/validation', () => ({
   validates: vi.fn((schema) => vi.fn().mockReturnValue({})),
   returns: vi.fn((schema) => vi.fn().mockReturnValue(true))
 }));
 
-vi.mock('zerot/conditions/rate-limit', () => ({
+vi.mock('~/conditions/rate-limit', () => ({
   rateLimit: vi.fn((operation, limit, windowMs) => vi.fn().mockResolvedValue(true))
 }));
 
-vi.mock('zerot/conditions/audit', () => ({
+vi.mock('~/conditions/audit', () => ({
   auditLog: vi.fn((action) => vi.fn().mockResolvedValue(true))
 }));
 
-vi.mock('zerot/conditions/business-rules', () => ({
+vi.mock('~/conditions/business-rules', () => ({
   businessRule: vi.fn((description, rule) => vi.fn().mockResolvedValue(true))
 }));
 
 // Import mocked functions
-import { auth } from 'zerot/conditions/auth';
-import { owns } from 'zerot/conditions/owns';
-import { validates, returns } from 'zerot/conditions/validation';
-import { rateLimit } from 'zerot/conditions/rate-limit';
-import { auditLog } from 'zerot/conditions/audit';
-import { businessRule } from 'zerot/conditions/business-rules';
+import { auth } from '~/conditions/auth';
+import { owns } from '~/conditions/owns';
+import { validates, returns } from '~/conditions/validation';
+import { rateLimit } from '~/conditions/rate-limit';
+import { auditLog } from '~/conditions/audit';
+import { businessRule } from '~/conditions/business-rules';
 
 describe('ContractHelpers', () => {
   beforeEach(() => {

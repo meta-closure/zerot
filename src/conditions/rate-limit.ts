@@ -1,7 +1,7 @@
-import { ContractError, ErrorCategory } from "zerot/core/errors";
-import { AuthContext } from "zerot/core/types";
-import { zerotConfig } from "zerot/config";
-import { logger } from "zerot/utils/logger";
+import { ContractError, ErrorCategory } from "~/core/errors";
+import { AuthContext } from "~/core/types";
+import { zerotConfig } from "~/config";
+import { logger } from "~/utils/logger";
 
 /**
  * Creates a rate limiting condition.

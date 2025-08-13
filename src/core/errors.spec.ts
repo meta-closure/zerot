@@ -3,7 +3,7 @@ import {
   ErrorCategory,
   ContractError,
   ContractViolationError
-} from 'zerot/core/errors'; // Adjust import path as needed
+} from '~/core/errors'; // Adjust import path as needed
 
 describe('Error Classes', () => {
   describe('ErrorCategory', () => {

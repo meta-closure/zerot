@@ -1,4 +1,4 @@
-import { ContractViolationError } from "zerot/core/errors";
+import { ContractViolationError } from "~/core/errors";
 import { redirect } from "next/navigation"; // Assuming Next.js environment
 
 /**

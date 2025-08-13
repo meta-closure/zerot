@@ -1,5 +1,5 @@
-import { ContractError, ErrorCategory } from "zerot/core/errors";
-import { AuthContext } from "zerot/core/types";
+import { ContractError, ErrorCategory } from "~/core/errors";
+import { AuthContext } from "~/core/types";
 
 /**
  * Creates an authentication condition that checks if a user is logged in and has a required role.

@@ -1,4 +1,4 @@
-import { Metrics } from "zerot/utils/metrics";
+import { Metrics } from "~/utils/metrics";
 
 /**
  * Provides performance monitoring utilities for contract execution.

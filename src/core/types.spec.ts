@@ -13,8 +13,8 @@ import {
   AuthContext,
   SessionProvider,
   ResourceProvider
-} from 'zerot/core/types'; // Updated import path based on contract.ts
-import { ContractError, ErrorCategory } from 'zerot/core/errors'; // Adjust import path as needed
+} from '~/core/types'; // Updated import path based on contract.ts
+import { ContractError, ErrorCategory } from '~/core/errors'; // Adjust import path as needed
 
 describe('Contract Types and Functions', () => {
   // Reset providers before each test

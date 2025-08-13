@@ -1,4 +1,4 @@
-import { ContractCondition, ContractValidator, AuthContext } from "zerot/core/types";
+import { ContractCondition, ContractValidator, AuthContext } from "~/core/types";
 
 /**
  * Type guard to check if a given object is a ContractValidator.
