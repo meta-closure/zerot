@@ -1,13 +1,11 @@
 import { AuthContext } from "~/core/types";
-import { zerotConfig } from "~/config";
 
-// Placeholder for audit logging (e.g., a logging service)
-// In a real application, this would send logs to a centralized system.
 export async function logAuditEvent(event: any): Promise<void> {
-  if (zerotConfig.get('enableDebugMode')) {
+  // 開発環境でのみコンソール出力
+  if (process.env.NODE_ENV === 'development') {
     console.log("AUDIT LOG:", event);
   }
-  // In production, send to a dedicated logging service
+  // 本番環境では外部ログサービスに送信
 }
 
 /**

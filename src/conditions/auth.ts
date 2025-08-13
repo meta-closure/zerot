@@ -34,8 +34,6 @@ import { AuthContext } from "~/core/types";
  */
 export function auth(requiredRole?: string) {
   return async (input: any, context: AuthContext): Promise<boolean> => {
-    const effectiveRequiredRole = requiredRole;
-
     if (!context.user) {
       throw new ContractError("User must be logged in", {
         code: "AUTHENTICATION_REQUIRED",
@@ -50,16 +48,18 @@ export function auth(requiredRole?: string) {
       });
     }
 
-    if (effectiveRequiredRole && !context.user!.roles.includes(effectiveRequiredRole)) {
-      throw new ContractError(
-        `Required role: ${effectiveRequiredRole}, User roles: ${context.user.roles.join(
-          ", "
-        )}`,
-        {
-          code: "INSUFFICIENT_ROLE",
-          category: ErrorCategory.AUTHORIZATION,
-        }
-      );
+    // roles チェックを強化
+    if (requiredRole) {
+      const userRoles = context.user.roles || [];
+      if (!userRoles.includes(requiredRole)) {
+        throw new ContractError(
+          `Required role: ${requiredRole}, User roles: ${userRoles.join(", ")}`,
+          {
+            code: "INSUFFICIENT_ROLE",
+            category: ErrorCategory.AUTHORIZATION,
+          }
+        );
+      }
     }
 
     return true;

@@ -1,6 +1,5 @@
 import { ContractError, ErrorCategory } from "~/core/errors";
 import { AuthContext } from "~/core/types";
-import { zerotConfig } from "~/config";
 import { logger } from "~/utils/logger";
 
 /**
@@ -35,43 +34,45 @@ import { logger } from "~/utils/logger";
  * }
  * ```
  */
-export function rateLimit(operation: string, maxPerWindow: number, windowMs?: number) {
-  return async (input: any, context: AuthContext): Promise<boolean> => {
-    const effectiveWindowMs = windowMs || zerotConfig.get('defaultRateLimitWindow');
+// シンプルなインメモリストア
+const rateStore = new Map<string, { count: number; lastReset: number }>();
 
+export function rateLimit(operation: string, maxPerWindow: number, windowMs: number = 60000) {
+  return async (input: any, context: AuthContext): Promise<boolean> => {
     if (!context.user?.id) {
-      // If the user is not authenticated, either don't apply rate limiting or handle it differently.
-      // For now, throw an an error.
       throw new ContractError("User ID required for rate limiting", {
         code: "RATE_LIMIT_ERROR",
-        category: ErrorCategory.AUTHENTICATION, // Or SYSTEM if it's an internal configuration issue
+        category: ErrorCategory.AUTHENTICATION,
       });
     }
+
     const key = `rateLimit:${context.user.id}:${operation}`;
-    const store = zerotConfig.get('customRateLimitStore');
-    
-    const entry = await store.get(key);
+    const entry = rateStore.get(key);
     const now = Date.now();
 
-    if (!entry || (now - entry.lastReset) > effectiveWindowMs) { // Reset based on configured windowMs
-      await store.set(key, { count: 0, lastReset: now });
+    // ウィンドウリセット
+    if (!entry || (now - entry.lastReset) > windowMs) {
+      rateStore.set(key, { count: 0, lastReset: now });
     }
     
-    const current = (await store.get(key))?.count || 0;
+    const current = rateStore.get(key)?.count || 0;
 
     if (current >= maxPerWindow) {
       throw new ContractError(
-        `Rate limit exceeded for ${operation}: ${current}/${maxPerWindow} per ${effectiveWindowMs / 1000} seconds`,
+        `Rate limit exceeded for ${operation}: ${current}/${maxPerWindow} per ${windowMs / 1000} seconds`,
         {
           code: "RATE_LIMIT_EXCEEDED",
-          category: ErrorCategory.BUSINESS_LOGIC, // Or THROTTLING
-          details: { operation, maxPerWindow, current, windowMs: effectiveWindowMs },
-          isRecoverable: false, // Rate limit exceeded is generally not recoverable by retrying immediately
+          category: ErrorCategory.BUSINESS_LOGIC,
+          details: { operation, maxPerWindow, current, windowMs },
+          isRecoverable: false,
         }
       );
     }
 
-    await store.increment(key);
+    // カウンター増加
+    const currentEntry = rateStore.get(key)!;
+    rateStore.set(key, { ...currentEntry, count: currentEntry.count + 1 });
+    
     return true;
   };
 }

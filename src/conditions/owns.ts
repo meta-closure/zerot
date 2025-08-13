@@ -49,11 +49,11 @@ export function owns(resourceIdField: string) {
       });
     }
 
-    // Admins bypass ownership checks
-    // Check if user has roles and if the roles array includes "admin"
-    if (context.user.roles && context.user.roles.includes("admin")) {
+    // admin チェックを強化
+    const userRoles = context.user.roles || [];
+    if (userRoles.includes("admin")) {
       return true;
-    }    
+    }
 
     // Use the configured resource provider to get the resource
     const resource = await getResource(resourceId);
