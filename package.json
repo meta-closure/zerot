@@ -1,132 +1,75 @@
 {
   "name": "zerot",
   "version": "1.0.0",
-  "description": "Design by Contract framework for TypeScript with zero-trust architecture principles and AI-friendly development",
-  "type": "module",
+  "description": "Design by Contract for TypeScript with Next.js integration",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsc && tsc-alias",
-    "build:watch": "tsc -w",
-    "build:clean": "rm -rf dist && npm run build",
-    "dev": "tsc -w",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui",
-    "test:watch": "vitest --watch",
-    "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix",
-    "type-check": "tsc --noEmit",
-    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
-    "docs": "typedoc src --out docs --excludePrivate --excludeProtected",
-    "docs:serve": "npx serve docs",
-    "docs:watch": "typedoc src --out docs --watch",
-    "prepack": "npm run build:clean && npm run test:run && npm run lint && npm run type-check",
-    "prepublishOnly": "npm run prepack"
+  "exports": {
+    ".": {
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./core": {
+      "import": "./dist/core/index.esm.js",
+      "require": "./dist/core/index.js",
+      "types": "./dist/core/index.d.ts"
+    },
+    "./conditions": {
+      "import": "./dist/conditions/index.esm.js", 
+      "require": "./dist/conditions/index.js",
+      "types": "./dist/conditions/index.d.ts"
+    },
+    "./templates": {
+      "import": "./dist/templates/index.esm.js",
+      "require": "./dist/templates/index.js", 
+      "types": "./dist/templates/index.d.ts"
+    },
+    "./utils": {
+      "import": "./dist/utils/index.esm.js",
+      "require": "./dist/utils/index.js",
+      "types": "./dist/utils/index.d.ts"
+    },
+    "./integrations": {
+      "import": "./dist/integrations/index.esm.js",
+      "require": "./dist/integrations/index.js",
+      "types": "./dist/integrations/index.d.ts"
+    }
   },
   "files": [
     "dist",
     "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
+    "LICENSE"
   ],
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./config": {
-      "import": "./dist/config/index.js",
-      "require": "./dist/config/index.js",
-      "types": "./dist/config/index.d.ts"
-    },
-    "./core": {
-      "import": "./dist/core/index.js",
-      "require": "./dist/core/index.js",
-      "types": "./dist/core/index.d.ts"
-    },
-    "./core/*": {
-      "import": "./dist/core/*.js",
-      "require": "./dist/core/*.js",
-      "types": "./dist/core/*.d.ts"
-    },
-    "./conditions": {
-      "import": "./dist/conditions/index.js",
-      "require": "./dist/conditions/index.js",
-      "types": "./dist/conditions/index.d.ts"
-    },
-    "./conditions/*": {
-      "import": "./dist/conditions/*.js",
-      "require": "./dist/conditions/*.js",
-      "types": "./dist/conditions/*.d.ts"
-    },
-    "./templates": {
-      "import": "./dist/templates/index.js",
-      "require": "./dist/templates/index.js",
-      "types": "./dist/templates/index.d.ts"
-    },
-    "./templates/*": {
-      "import": "./dist/templates/*.js",
-      "require": "./dist/templates/*.js",
-      "types": "./dist/templates/*.d.ts"
-    },
-    "./utils": {
-      "import": "./dist/utils/index.js",
-      "require": "./dist/utils/index.js",
-      "types": "./dist/utils/index.d.ts"
-    },
-    "./utils/*": {
-      "import": "./dist/utils/*.js",
-      "require": "./dist/utils/*.js",
-      "types": "./dist/utils/*.d.ts"
-    },
-    "./integrations/nextjs": {
-      "import": "./dist/integrations/nextjs.js",
-      "require": "./dist/integrations/nextjs.js",
-      "types": "./dist/integrations/nextjs.d.ts"
-    },
-    "./integrations/server-actions": {
-      "import": "./dist/integrations/server-actions.js",
-      "require": "./dist/integrations/server-actions.js",
-      "types": "./dist/integrations/server-actions.d.ts"
-    }
+  "scripts": {
+    "build": "npm run clean && npm run build:types && npm run build:esm && npm run build:cjs",
+    "build:types": "tsc --emitDeclarationOnly --outDir dist",
+    "build:esm": "esbuild src/index.ts --bundle --format=esm --outfile=dist/index.esm.js --external:zod --external:next",
+    "build:cjs": "esbuild src/index.ts --bundle --format=cjs --outfile=dist/index.js --external:zod --external:next",
+    "clean": "rimraf dist",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run test && npm run build",
+    "prepack": "npm run build"
   },
-  "peerDependencies": {
-    "zod": "^3.0.0"
-  },
-  "dependencies": {
-    "reflect-metadata": "^0.1.13"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.0.0",
-    "@types/node": "^20.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
-    "@vitest/coverage-v8": "^1.0.0",
-    "@vitest/ui": "^1.0.0",
-    "chalk": "^5.0.0",
-    "eslint": "^8.0.0",
-    "fs-extra": "^11.0.0",
-    "jsdom": "^25.0.0",
-    "next": "^14.0.0",
-    "prettier": "^3.0.0",
-    "tsc-alias": "^1.8.0",
-    "typedoc": "^0.25.0",
-    "typescript": "^5.3.0",
-    "vite-tsconfig-paths": "^4.3.0",
-    "vitest": "^1.0.0",
-    "zod": "^3.22.0"
-  },
-  "optionalDependencies": {
-    "redis": "^4.0.0"
-  },
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
-  },
+  "keywords": [
+    "typescript",
+    "design-by-contract",
+    "contracts",
+    "validation",
+    "nextjs",
+    "server-actions",
+    "authentication",
+    "authorization",
+    "decorators",
+    "zod"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "homepage": "https://meta-closure.github.io/zerot/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/meta-closure/zerot.git"
@@ -134,32 +77,27 @@
   "bugs": {
     "url": "https://github.com/meta-closure/zerot/issues"
   },
-  "homepage": "https://meta-closure.github.io/zerot/",
-  "keywords": [
-    "typescript",
-    "contracts",
-    "design-by-contract",
-    "nextjs",
-    "security",
-    "validation",
-    "authentication",
-    "authorization",
-    "audit",
-    "rate-limiting",
-    "zero-trust",
-    "ai-friendly",
-    "decorator",
-    "middleware",
-    "server-actions"
-  ],
-  "license": "MIT",
-  "author": "metaclosure <metaclosure@gmail.com>",
-  "funding": {
-    "type": "github",
-    "url": "https://github.com/sponsors/meta-closure"
+  "peerDependencies": {
+    "zod": "^3.20.0",
+    "next": "^13.0.0 || ^14.0.0 || ^15.0.0"
   },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
+  "peerDependenciesMeta": {
+    "next": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "esbuild": "^0.19.0",
+    "eslint": "^8.50.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "rimraf": "^5.0.0",
+    "typescript": "^5.2.0",
+    "vitest": "^0.34.0",
+    "@vitest/coverage-v8": "^0.34.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
