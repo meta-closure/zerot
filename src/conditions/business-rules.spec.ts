@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { businessRule } from './business-rules';
-import { ContractError, ErrorCategory } from '../core/errors';
-import { AuthContext } from '../core/types';
+import { businessRule } from 'zerot/conditions/business-rules';
+import { ContractError, ErrorCategory } from 'zerot/core/errors';
+import { AuthContext } from 'zerot/core/types';
 
 describe('businessRule', () => {
   let mockContext: AuthContext;

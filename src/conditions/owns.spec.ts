@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { owns } from './owns';
-import { ContractError, ErrorCategory } from '../core/errors';
-import { AuthContext } from '../core/types';
+import { owns } from 'zerot/conditions/owns';
+import { ContractError, ErrorCategory } from 'zerot/core/errors';
+import { AuthContext } from 'zerot/core/types';
 
 // getResource関数をモック化 - ホイスティング問題を避けるため変数参照を削除
-vi.mock('../core/types', async () => {
+vi.mock('zerot/core/types', async () => {
   const actual = await vi.importActual('../core/types');
   return {
     ...actual,
@@ -13,7 +13,7 @@ vi.mock('../core/types', async () => {
 });
 
 // モック関数をインポート後に取得
-import { getResource } from '../core/types';
+import { getResource } from 'zerot/core/types';
 const mockGetResource = vi.mocked(getResource);
 
 describe('owns', () => {

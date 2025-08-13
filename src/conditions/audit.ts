@@ -1,5 +1,5 @@
-import { AuthContext } from "../core/types";
-import { zerotConfig } from "../config";
+import { AuthContext } from "zerot/core/types";
+import { zerotConfig } from "zerot/config";
 
 // Placeholder for audit logging (e.g., a logging service)
 // In a real application, this would send logs to a centralized system.

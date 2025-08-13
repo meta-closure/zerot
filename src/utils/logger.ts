@@ -2,7 +2,7 @@
  * Defines the interface for a logger.
  * This interface ensures consistency across different logging implementations.
  */
-import { zerotConfig } from "../config";
+import { zerotConfig } from "zerot/config";
 
 export interface Logger {
   /**

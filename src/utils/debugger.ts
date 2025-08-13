@@ -1,5 +1,5 @@
-import { logger } from "./logger";
-import { ContractViolationError } from "../core/errors";
+import { logger } from "zerot/utils/logger";
+import { ContractViolationError } from "zerot/core/errors";
 
 /**
  * Provides debugging utilities for contract execution.

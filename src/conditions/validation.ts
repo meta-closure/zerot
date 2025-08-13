@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { ContractError, ErrorCategory } from "../core/errors";
-import { ContractValidator, ContractEnsuresCondition } from "../core/types"; // Import generic types
-import { logger } from "../utils/logger";
+import { ContractError, ErrorCategory } from "zerot/core/errors";
+import { ContractValidator, ContractEnsuresCondition } from "zerot/core/types"; // Import generic types
+import { logger } from "zerot/utils/logger";
 
 /**
  * Creates a validation condition that uses a Zod schema to validate and optionally transform input.

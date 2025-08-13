@@ -1,12 +1,12 @@
 // src/templates/contract-helpers.ts
 
-import { ContractOptions } from "../core/types";
-import { auth } from "../conditions/auth";
-import { owns } from "../conditions/owns";
-import { validates, returns } from "../conditions/validation";
-import { rateLimit } from "../conditions/rate-limit";
-import { auditLog } from "../conditions/audit";
-import { businessRule } from "../conditions/business-rules";
+import { ContractOptions } from "zerot/core/types";
+import { auth } from "zerot/conditions/auth";
+import { owns } from "zerot/conditions/owns";
+import { validates, returns } from "zerot/conditions/validation";
+import { rateLimit } from "zerot/conditions/rate-limit";
+import { auditLog } from "zerot/conditions/audit";
+import { businessRule } from "zerot/conditions/business-rules";
 import { z } from "zod";
 
 /**

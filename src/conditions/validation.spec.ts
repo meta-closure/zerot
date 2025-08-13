@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { z } from 'zod';
-import { validates, returns } from './validation';
-import { ContractError, ErrorCategory } from '../core/errors';
+import { validates, returns } from 'zerot/conditions/validation';
+import { ContractError, ErrorCategory } from 'zerot/core/errors';
 
 describe('validates function', () => {
   describe('基本的なバリデーション', () => {

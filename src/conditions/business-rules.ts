@@ -1,6 +1,6 @@
-import { ContractError, ErrorCategory } from "../core/errors";
-import { AuthContext } from "../core/types";
-import { logger } from "../utils/logger";
+import { ContractError, ErrorCategory } from "zerot/core/errors";
+import { AuthContext } from "zerot/core/types";
+import { logger } from "zerot/utils/logger";
 
 /**
  * Creates a business rule condition.

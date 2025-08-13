@@ -1,7 +1,7 @@
-import { ContractViolationError } from "../core/errors";
-import { getAuthContext } from "../core/types";
+import { ContractViolationError } from "zerot/core/errors";
+import { getAuthContext } from "zerot/core/types";
 import { redirect } from "next/navigation"; // Assuming Next.js environment
-import { logger } from "../utils/logger";
+import { logger } from "zerot/utils/logger";
 
 /**
  * Helper to integrate Next.js Server Actions with the contract system.

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { contract } from './contract';
-import { ContractError, ContractViolationError, ErrorCategory } from './errors';
-import { AuthContext } from './types';
+import { contract } from 'zerot/core/contract';
+import { ContractError, ContractViolationError, ErrorCategory } from 'zerot/core/errors';
+import { AuthContext } from 'zerot/core/types';
 
 // Mock dependencies
 vi.mock('zerot/utils/delay', () => ({
@@ -26,7 +26,7 @@ vi.mock('./types', () => ({
 import { delay } from 'zerot/utils/delay';
 import { logger } from 'zerot/utils/logger';
 import { isValidator } from 'zerot/utils/type-guards';
-import { getAuthContext } from './types';
+import { getAuthContext } from 'zerot/core/types';
 
 // Test types
 interface TestInput {

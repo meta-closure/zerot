@@ -1,35 +1,35 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { smartContract } from './smart-contract';
-import { ContractOptions } from '../core/types';
+import { smartContract } from 'zerot/templates/smart-contract';
+import { ContractOptions } from 'zerot/core/types';
 
 // モック関数
-vi.mock('../conditions/auth', () => ({
+vi.mock('zerot/conditions/auth', () => ({
   auth: vi.fn((role?: string) => vi.fn().mockResolvedValue(true))
 }));
 
-vi.mock('../conditions/owns', () => ({
+vi.mock('zerot/conditions/owns', () => ({
   owns: vi.fn((field) => vi.fn().mockResolvedValue(true))
 }));
 
-vi.mock('../conditions/validation', () => ({
+vi.mock('zerot/conditions/validation', () => ({
   validates: vi.fn((schema) => vi.fn().mockReturnValue({})),
   returns: vi.fn((schema) => vi.fn().mockReturnValue(true))
 }));
 
-vi.mock('../conditions/rate-limit', () => ({
+vi.mock('zerot/conditions/rate-limit', () => ({
   rateLimit: vi.fn((operation, limit) => vi.fn().mockResolvedValue(true))
 }));
 
-vi.mock('../conditions/audit', () => ({
+vi.mock('zerot/conditions/audit', () => ({
   auditLog: vi.fn((operation) => vi.fn().mockResolvedValue(true))
 }));
 
 // モック関数をインポート
-import { auth } from '../conditions/auth';
-import { owns } from '../conditions/owns';
-import { validates, returns } from '../conditions/validation';
-import { rateLimit } from '../conditions/rate-limit';
-import { auditLog } from '../conditions/audit';
+import { auth } from 'zerot/conditions/auth';
+import { owns } from 'zerot/conditions/owns';
+import { validates, returns } from 'zerot/conditions/validation';
+import { rateLimit } from 'zerot/conditions/rate-limit';
+import { auditLog } from 'zerot/conditions/audit';
 
 describe('smartContract', () => {
   beforeEach(() => {

@@ -1,10 +1,10 @@
-import { ContractOptions } from "../core/types";
-import { auth } from "../conditions/auth";
-import { validates, returns } from "../conditions/validation";
-import { owns } from "../conditions/owns";
-import { rateLimit } from "../conditions/rate-limit";
-import { auditLog } from "../conditions/audit";
-import { ContractError, ErrorCategory } from "../core/errors";
+import { ContractOptions } from "zerot/core/types";
+import { auth } from "zerot/conditions/auth";
+import { validates, returns } from "zerot/conditions/validation";
+import { owns } from "zerot/conditions/owns";
+import { rateLimit } from "zerot/conditions/rate-limit";
+import { auditLog } from "zerot/conditions/audit";
+import { ContractError, ErrorCategory } from "zerot/core/errors";
 import { z } from "zod";
 
 /**

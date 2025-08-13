@@ -5,9 +5,9 @@ import {
     ResourceProvider, 
     setSessionProvider, 
     setResourceProvider 
-  } from "../core/types";
-import { ErrorCategory } from "../core/errors";
-import { Logger, logger as defaultLogger } from "../utils/logger";
+  } from "zerot/core/types";
+import { ErrorCategory } from "zerot/core/errors";
+import { Logger, logger as defaultLogger } from "zerot/utils/logger";
 
 /**
  * Interface for rate limit storage backends.

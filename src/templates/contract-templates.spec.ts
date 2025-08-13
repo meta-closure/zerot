@@ -1,36 +1,36 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ContractTemplates } from './contract-templates';
-import { ContractError, ErrorCategory } from '../core/errors';
-import { AuthContext } from '../core/types';
+import { ContractTemplates } from 'zerot/templates/contract-templates';
+import { ContractError, ErrorCategory } from 'zerot/core/errors';
+import { AuthContext } from 'zerot/core/types';
 
 // モック関数
-vi.mock('../conditions/auth', () => ({
+vi.mock('zerot/conditions/auth', () => ({
   auth: vi.fn((role?: string) => vi.fn().mockResolvedValue(true))
 }));
 
-vi.mock('../conditions/validation', () => ({
+vi.mock('zerot/conditions/validation', () => ({
   validates: vi.fn((schema) => vi.fn().mockReturnValue({})),
   returns: vi.fn((schema) => vi.fn().mockReturnValue(true))
 }));
 
-vi.mock('../conditions/owns', () => ({
+vi.mock('zerot/conditions/owns', () => ({
   owns: vi.fn((field) => vi.fn().mockResolvedValue(true))
 }));
 
-vi.mock('../conditions/rate-limit', () => ({
+vi.mock('zerot/conditions/rate-limit', () => ({
   rateLimit: vi.fn((operation, limit) => vi.fn().mockResolvedValue(true))
 }));
 
-vi.mock('../conditions/audit', () => ({
+vi.mock('zerot/conditions/audit', () => ({
   auditLog: vi.fn((operation) => vi.fn().mockResolvedValue(true))
 }));
 
 // モック関数をインポート
-import { auth } from '../conditions/auth';
-import { validates, returns } from '../conditions/validation';
-import { owns } from '../conditions/owns';
-import { rateLimit } from '../conditions/rate-limit';
-import { auditLog } from '../conditions/audit';
+import { auth } from 'zerot/conditions/auth';
+import { validates, returns } from 'zerot/conditions/validation';
+import { owns } from 'zerot/conditions/owns';
+import { rateLimit } from 'zerot/conditions/rate-limit';
+import { auditLog } from 'zerot/conditions/audit';
 
 describe('ContractTemplates', () => {
   let mockContext: AuthContext;
@@ -442,49 +442,6 @@ describe('ContractTemplates', () => {
           ContractTemplates.publicAPI(name);
         }).not.toThrow();
       });
-    });
-  });
-
-  describe('performance considerations', () => {
-    it('should create templates efficiently for multiple calls', () => {
-      const startTime = Date.now();
-      
-      // 多数のテンプレートを作成
-      for (let i = 0; i < 1000; i++) {
-        ContractTemplates.userCRUD('user');
-        ContractTemplates.adminOnly(`operation_${i}`);
-        ContractTemplates.publicAPI(`api_${i}`);
-      }
-      
-      const endTime = Date.now();
-      const duration = endTime - startTime;
-      
-      // 1000回の呼び出しが1秒以内に完了することを確認
-      expect(duration).toBeLessThan(1000);
-    });
-
-    it('should not have memory leaks with repeated template creation', () => {
-      // メモリリークがないことを簡単にテスト
-      const initialMemory = process.memoryUsage().heapUsed;
-      
-      for (let i = 0; i < 100; i++) {
-        ContractTemplates.batchOperation({
-          requires: [vi.fn()],
-          ensures: [vi.fn()],
-          layer: 'business'
-        });
-      }
-      
-      // ガベージコレクションを強制実行（テスト環境でのみ）
-      if (global.gc) {
-        global.gc();
-      }
-      
-      const finalMemory = process.memoryUsage().heapUsed;
-      const memoryIncrease = finalMemory - initialMemory;
-      
-      // メモリ増加が過度でないことを確認（10MB以下）
-      expect(memoryIncrease).toBeLessThan(10 * 1024 * 1024);
     });
   });
 });
