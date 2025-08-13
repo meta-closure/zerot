@@ -1,4 +1,4 @@
-import { ContractError } from "../core/errors";
+import { ContractError, ErrorCategory } from "../core/errors";
 import { AuthContext } from "../core/types";
 
 /**
@@ -43,7 +43,10 @@ export function businessRule(
   return async (input: any, context: AuthContext): Promise<boolean> => {
     const passed = await Promise.resolve(rule(input, context));
     if (!passed) {
-      throw new ContractError("BUSINESS_RULE_VIOLATION", description);
+      throw new ContractError(description, {
+        code: "BUSINESS_RULE_VIOLATION",
+        category: ErrorCategory.BUSINESS_LOGIC,
+      });
     }
     return true;
   };

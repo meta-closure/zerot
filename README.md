@@ -1,6 +1,7 @@
 # Zerot: Design by Contract for TypeScript
 
 https://meta-closure.github.io/zerot/
+
 [![pages-build-deployment](https://github.com/meta-closure/zerot/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/meta-closure/zerot/actions/workflows/pages/pages-build-deployment)
 
 Zerot is a powerful TypeScript library that brings the principles of Design by Contract (DbC) to your applications, with a strong focus on robust backend logic and seamless integration with Next.js Server Actions and Middleware. It allows you to define clear pre-conditions, post-conditions, and invariants for your methods, ensuring predictable behavior and enhancing code reliability.
@@ -9,7 +10,7 @@ Zerot is a powerful TypeScript library that brings the principles of Design by C
 
 - **Contract Decorator (`@contract`):** Easily apply contracts to any method in your TypeScript classes.
 - **Pre-conditions (`requires`):** Define conditions that must be met before a method executes. Includes input validation and authentication checks.
-- **Post-conditions (`ensures`):** Define conditions that must be true after a method completes successfully. Includes output validation and auditing.
+- **Post-conditions (`ensures`)::** Define conditions that must be true after a method completes successfully. Includes output validation and auditing.
 - **Invariants (`invariants`):** Define conditions that must remain true throughout the method's execution, often related to object state.
 - **Built-in Conditions:** A set of ready-to-use conditions for common scenarios like authentication, ownership, data validation (with Zod), rate limiting, and auditing.
 - **Next.js Integration:**
@@ -18,6 +19,20 @@ Zerot is a powerful TypeScript library that brings the principles of Design by C
 - **Flexible Authentication Context:** Integrate with your existing authentication system by providing a session provider.
 - **Error Handling:** Provides `ContractError` and `ContractViolationError` for structured error management.
 - **Utilities:** Includes tools for debugging, performance monitoring, and optimizing contract systems.
+- **Comprehensive JSDoc Documentation:** The entire codebase is thoroughly documented with JSDoc comments, providing detailed explanations for all functions, classes, interfaces, and types, enhancing developer experience and maintainability.
+- **VSCode Extension:** Provides enhanced support for Zerot in VSCode, including syntax highlighting for `@contract` decorator and related keywords (`requires`, `ensures`, `invariants`), and built-in conditions (`auth`, `validates`, `rateLimit`, `auditLog`, `owns`, `returns`, `businessRule`). Future updates will include auto-completion and basic error detection for common Zerot usage patterns.
+
+## Development
+
+### Hot-Reloading
+
+For development, you can use the `dev` script to enable hot-reloading. This will automatically restart the application when changes are detected in your source files.
+
+To start the development server with hot-reloading:
+
+```bash
+npm run dev
+```
 
 ## Installation
 
@@ -29,16 +44,22 @@ yarn add zerot zod
 
 ## Usage
 
-### 1. Define your Authentication Context
+### 1. Define your Authentication and Resource Contexts
 
-First, set up a session provider that `Zerot` can use to retrieve the authentication context. This is typically done once at your application's entry point or in a global configuration file.
+First, set up a session provider and a resource provider that `Zerot` can use to retrieve the authentication context and resources for ownership checks. This is typically done once at your application's entry point.
 
 ```typescript
-// lib/auth/sessionProvider.ts
-import { setSessionProvider, AuthContext } from "zerot/core";
-import { getServerSession } from "./config"; // Your actual session retrieval logic
+// lib/providers.ts
+import {
+  setSessionProvider,
+  setResourceProvider,
+  AuthContext,
+} from "zerot/core";
+import { getServerSession } from "./auth/config"; // Your actual session retrieval logic
+import { getResourceFromDatabase } from "./data/resourceRepository"; // Your actual resource retrieval logic
 
-export async function configureAuthContext() {
+export async function configureZerotProviders() {
+  // Configure Session Provider
   setSessionProvider(async () => {
     const session = await getServerSession(); // Replace with your actual session logic (e.g., NextAuth.js)
     return {
@@ -60,10 +81,18 @@ export async function configureAuthContext() {
       // Add any other custom context data here
     } as AuthContext;
   });
+
+  // Configure Resource Provider for ownership checks
+  setResourceProvider(async (resourceId: string) => {
+    // Replace with your actual logic to fetch a resource by ID from your database or API
+    // This function should return an object with 'id' and 'userId' properties, or null if not found.
+    const resource = await getResourceFromDatabase(resourceId);
+    return resource; // Assuming getResourceFromDatabase returns { id: string; userId: string } | null
+  });
 }
 
 // In your main application entry point (e.g., layout.tsx or a global setup file)
-// configureAuthContext();
+// configureZerotProviders();
 ```
 
 ### 2. Apply Contracts to Methods
@@ -231,18 +260,20 @@ export const config = {
 A decorator to apply Design by Contract principles to methods.
 
 - `options.requires`: An array of `ContractCondition` or `ContractValidator` functions.
-- `options.ensures`: An array of `ContractCondition` functions that run after the method.
+- `options.ensures`: An array of `ContractEnsuresCondition` functions that run after the method.
 - `options.invariants`: An array of `ContractInvariant` functions.
 - `options.layer`: (Optional) A string indicating the layer of the application (e.g., "presentation", "action", "business", "data"). Used for error reporting.
+
+**Note on Conditions:** `ContractCondition`, `ContractEnsuresCondition`, and `ContractInvariant` functions can return `true` (or a Promise resolving to `true`) for success, or a `ContractError` instance (or a Promise resolving to `ContractError`) to indicate a specific failure. Returning `false` is also supported but will result in a generic `ContractError`.
 
 ### Conditions
 
 Zerot provides several built-in conditions:
 
 - `auth(requiredRole?: string)`: Checks if a user is authenticated and optionally has a specific role.
-- `owns(property: string)`: Checks if the authenticated user owns the resource identified by `property` in the input.
+- `owns(property: string)`: Checks if the authenticated user owns the resource identified by `property` in the input. Requires a resource provider to be set via `setResourceProvider`.
 - `validates(schema: ZodSchema)`: Validates the input against a Zod schema. Can also transform the input.
-- `returns(schema: ZodSchema)`: Validates the method's return value against a Zod schema.
+- `returns(schema: ZodSchema)`: Validates the method's return value against a Zod schema. Returns `true` on success or a `ContractError` on failure.
 - `rateLimit(key: string, limit: number, windowMs?: number)`: Implements rate limiting for the method.
 - `auditLog(eventName: string)`: Logs an audit event after the method executes.
 - `businessRule(ruleFn: (input: any, context: AuthContext) => boolean | Promise<boolean>)`: Allows defining custom business rules as conditions.
@@ -251,7 +282,6 @@ Zerot provides several built-in conditions:
 
 - `ContractDebugger`: Provides debugging capabilities for contracts.
 - `ContractPerformanceMonitor`: Monitors the performance of contract executions.
-- `OptimizedContractSystem`: Offers optimizations for contract execution.
 
 ### Integrations
 
@@ -272,5 +302,3 @@ Contributions are welcome! Please feel free to open issues or submit pull reques
 ## License
 
 This project is licensed under the MIT License.
-
-# zerot

@@ -4,11 +4,13 @@ import { validates, returns } from "../conditions/validation";
 import { owns } from "../conditions/owns";
 import { rateLimit } from "../conditions/rate-limit";
 import { auditLog } from "../conditions/audit";
-import { ContractError } from "../core/errors";
+import { ContractError, ErrorCategory } from "../core/errors";
 import { z } from "zod";
 
-// Placeholder schemas for demonstration.
-// In a real application, these would be defined elsewhere or passed in.
+/**
+ * Zod schema for updating user information.
+ * Defines optional fields for `userId`, `email`, `name`, and `role`.
+ */
 const userUpdateSchema = z.object({
   userId: z.string().uuid().optional(),
   email: z.string().email().optional(),
@@ -16,6 +18,10 @@ const userUpdateSchema = z.object({
   role: z.enum(["user", "admin", "moderator"]).optional(),
 });
 
+/**
+ * Zod schema for user output data.
+ * Defines required fields for `id`, `email`, `name`, `role`, `createdAt`, and `updatedAt`.
+ */
 const userOutputSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
@@ -86,12 +92,18 @@ export const ContractTemplates = {
       auth("admin"),
       (input: any[]) => {
         if (!Array.isArray(input)) {
-          throw new ContractError('INVALID_BATCH_INPUT', 'Input must be an array');
+          throw new ContractError('Input must be an array', {
+            code: 'INVALID_BATCH_INPUT',
+            category: ErrorCategory.VALIDATION,
+          });
         }
         if (input.length > 1000) {
           throw new ContractError(
-            "BATCH_TOO_LARGE",
-            "Batch size must be ≤ 1000 items"
+            "Batch size must be ≤ 1000 items",
+            {
+              code: "BATCH_TOO_LARGE",
+              category: ErrorCategory.VALIDATION,
+            }
           );
         }
         return true;

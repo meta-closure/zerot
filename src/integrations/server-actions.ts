@@ -18,11 +18,11 @@ import { redirect } from "next/navigation"; // Assuming Next.js environment
  * // app/actions.ts (Server Component)
  * "use server";
  *
- * import { createServerAction } from "../src/integrations/server-actions";
- * import { contract } from "../src/core/contract";
- * import { auth } from "../src/conditions/auth";
+ * import { createServerAction } from "../../src/integrations/server-actions";
+ * import { contract } from "../../src/core/contract";
+ * import { auth } from "../../src/conditions/auth";
  * import { z } from "zod";
- * import { validates } from "../src/conditions/validation";
+ * import { validates } from "../../src/conditions/validation";
  *
  * const CreatePostSchema = z.object({
  *   title: z.string().min(1),

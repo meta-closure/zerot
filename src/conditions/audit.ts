@@ -2,13 +2,18 @@ import { AuthContext } from "../core/types";
 
 // Placeholder for audit logging (e.g., a logging service)
 // In a real application, this would send logs to a centralized system.
-async function logAuditEvent(event: any): Promise<void> {
+export async function logAuditEvent(event: any): Promise<void> {
   if (process.env.NODE_ENV === "development") {
     console.log("AUDIT LOG:", event);
   }
   // In production, send to a dedicated logging service
 }
 
+/**
+ * Sanitizes data by removing sensitive information before logging for audit purposes.
+ * @param data - The data to sanitize.
+ * @returns The sanitized data.
+ */
 function sanitizeForAudit(data: any): any {
   if (typeof data !== "object" || data === null) {
     return data;
@@ -51,15 +56,20 @@ export function auditLog(action: string) {
     input: any,
     context: AuthContext
   ): Promise<boolean> => {
-    await logAuditEvent({
-      action,
-      userId: context.user?.id || "anonymous",
-      resourceId: input.id || input.userId || "N/A",
-      timestamp: new Date(),
-      input: sanitizeForAudit(input),
-      output: sanitizeForAudit(output),
-      success: true,
-    });
-    return true;
+    try {
+      await logAuditEvent({
+        action,
+        userId: context.user?.id || "anonymous",
+        resourceId: input.id || input.userId || "N/A",
+        timestamp: new Date(),
+        input: sanitizeForAudit(input),
+        output: sanitizeForAudit(output),
+        success: true,
+      });
+      return true;
+    } catch (error) {
+      // Re-throw the error to allow proper error handling by the calling code
+      throw error;
+    }
   };
 }

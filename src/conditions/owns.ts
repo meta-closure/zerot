@@ -1,12 +1,5 @@
-import { ContractError } from "../core/errors";
-import { AuthContext } from "../core/types";
-
-// This is a placeholder for a function that would retrieve a resource by its ID.
-// In a real application, this would interact with a database or external service.
-// It's declared globally for testing purposes in `tests/unit/contract.test.ts` and `tests/integration/contract.integration.test.ts`.
-declare global {
-  var getResourceById: (resourceId: string) => Promise<{ id: string; userId: string } | null>;
-}
+import { ContractError, ErrorCategory } from "../core/errors";
+import { AuthContext, getResource } from "../core/types"; // Import getResource
 
 /**
  * Creates an ownership check condition.
@@ -17,14 +10,15 @@ declare global {
  * @returns A condition function that takes input and authentication context, and returns a Promise resolving to a boolean.
  * @throws {ContractError} If the user is not authenticated, the resource ID is missing, the resource is not found,
  *                         or the user does not own the resource.
- * @throws {Error} If `global.getResourceById` is not defined (which is used to fetch resource details).
+ * @throws {Error} If `getResource` is not configured via `setResourceProvider`.
  *
  * @example
  * ```typescript
- * // Assume global.getResourceById is implemented to fetch resource details
- * declare global {
- *   var getResourceById: (resourceId: string) => Promise<{ id: string; userId: string } | null>;
- * }
+ * // Ensure setResourceProvider is called at application startup:
+ * // setResourceProvider(async (resourceId: string) => {
+ * //   // Your logic to fetch resource from DB/API
+ * //   return { id: resourceId, userId: "owner123" };
+ * // });
  *
  * class DocumentService {
  *   @contract({
@@ -40,31 +34,41 @@ declare global {
 export function owns(resourceIdField: string) {
   return async (input: any, context: AuthContext): Promise<boolean> => {
     if (!context.user?.id) {
-      throw new ContractError("AUTHENTICATION_REQUIRED", "User not authenticated for ownership check");
+      throw new ContractError("User not authenticated for ownership check", {
+        code: "AUTHENTICATION_REQUIRED",
+        category: ErrorCategory.AUTHENTICATION,
+      });
     }
 
     const resourceId = input[resourceIdField];
     if (!resourceId) {
-      throw new ContractError("MISSING_RESOURCE_ID", `Resource ID field '${resourceIdField}' is missing in input`);
+      throw new ContractError(`Resource ID field '${resourceIdField}' is missing in input`, {
+        code: "MISSING_RESOURCE_ID",
+        category: ErrorCategory.VALIDATION,
+      });
     }
 
     // Admins bypass ownership checks
-    if (context.user.roles.includes("admin")) {
+    // Check if user has roles and if the roles array includes "admin"
+    if (context.user.roles && context.user.roles.includes("admin")) {
       return true;
-    }
+    }    
 
-    if (typeof global.getResourceById !== 'function') {
-      throw new Error("global.getResourceById is not defined. Ensure it's mocked or implemented for ownership checks.");
-    }
-
-    const resource = await global.getResourceById(resourceId);
+    // Use the configured resource provider to get the resource
+    const resource = await getResource(resourceId);
 
     if (!resource) {
-      throw new ContractError("RESOURCE_NOT_FOUND", `Resource with ID ${resourceId} not found`);
+      throw new ContractError(`Resource with ID ${resourceId} not found`, {
+        code: "RESOURCE_NOT_FOUND",
+        category: ErrorCategory.BUSINESS_LOGIC,
+      });
     }
 
     if (resource.userId !== context.user.id) {
-      throw new ContractError("OWNERSHIP_DENIED", `User ${context.user.id} does not own resource ${resourceId}`);
+      throw new ContractError(`User ${context.user.id} does not own resource ${resourceId}`, {
+        code: "OWNERSHIP_DENIED",
+        category: ErrorCategory.AUTHORIZATION,
+      });
     }
 
     return true;

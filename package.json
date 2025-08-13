@@ -2,13 +2,19 @@
   "name": "zerot",
   "version": "1.0.0",
   "description": "Zero-trust architecture framework with decorator-based contract programming for AI-friendly development",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "docs": "typedoc src/index.ts",
-    "test": "jest",
+    "test": "vitest",
     "build": "tsc",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "cli": "npx tsx src/cli/index.ts",
+    "dev": "tsc --watch"
+  },
+  "bin": {
+    "zerot": "./dist/cli/index.js"
   },
   "files": [
     "dist",
@@ -21,24 +27,24 @@
       "require": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
-    "./core": "./dist/core/index.js",
-    "./conditions": "./dist/conditions/index.js",
-    "./templates": "./dist/templates/index.js",
+    "./core/*": "./dist/core/*.js",
+    "./conditions/*": "./dist/conditions/*.js",
+    "./templates/*": "./dist/templates/*.js",
     "./integrations/nextjs": "./dist/integrations/nextjs.js"
   },
   "peerDependencies": {
     "zod": "^3.0.0"
   },
   "devDependencies": {
-    "@types/jest": "^30.0.0",
     "@types/node": "^24.2.1",
-    "@types/react": "^19.1.9",
-    "@types/react-dom": "^19.1.7",
-    "jest": "^30.0.5",
+    "chalk": "^5.0.0",
+    "fs-extra": "^11.0.0",
+    "jsdom": "^26.1.0",
     "next": "^15.4.6",
-    "ts-jest": "^29.4.1",
     "typedoc": "^0.28.10",
     "typescript": "^5.0.0",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.2.4",
     "zod": "^3.22.0"
   },
   "keywords": [

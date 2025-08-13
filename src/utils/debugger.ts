@@ -1,3 +1,4 @@
+import { logger } from "./logger";
 import { ContractViolationError } from "../core/errors";
 
 /**
@@ -32,24 +33,27 @@ export class ContractDebugger {
     output?: any,
     error?: any
   ) {
-    if (process.env.NODE_ENV === "development") {
-      this.contractHistory.push({
-        contractName,
-        layer,
-        timestamp: new Date(),
-        input: this.sanitizeForLog(input),
-        output: this.sanitizeForLog(output),
-        status: error ? "failure" : "success",
-        error,
-      });
+    this.contractHistory.push({
+      contractName,
+      layer,
+      timestamp: new Date(),
+      input: this.sanitizeForLog(input),
+      output: this.sanitizeForLog(output),
+      status: error ? "failure" : "success",
+      error,
+    });
 
-      // Display in console in real-time
-      const icon = error ? "❌" : "✅";
-      console.log(`${icon} Contract [${layer}] ${contractName}`, {
-        input: this.sanitizeForLog(input),
-        ...(output && { output: this.sanitizeForLog(output) }),
-        ...(error && { error: error.message }),
-      });
+    const metadata = {
+      layer,
+      input: this.sanitizeForLog(input),
+      ...(output && { output: this.sanitizeForLog(output) }),
+      ...(error && { error: error.message }),
+    };
+
+    if (error) {
+      logger.error(`Contract [${layer}] ${contractName} failed`, metadata);
+    } else {
+      logger.debug(`Contract [${layer}] ${contractName} executed`, metadata);
     }
   }
 
@@ -109,6 +113,6 @@ export class ContractDebugger {
 }
 
 // Global contract monitor for development environment
-if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+if (typeof window !== "undefined") {
   (window as any).__contractDebugger = ContractDebugger;
 }

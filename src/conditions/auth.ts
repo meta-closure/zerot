@@ -1,4 +1,4 @@
-import { ContractError } from "../core/errors";
+import { ContractError, ErrorCategory } from "../core/errors";
 import { AuthContext } from "../core/types";
 
 /**
@@ -34,23 +34,31 @@ import { AuthContext } from "../core/types";
  */
 export function auth(requiredRole?: string) {
   return async (input: any, context: AuthContext): Promise<boolean> => {
+    const effectiveRequiredRole = requiredRole;
+
     if (!context.user) {
-      throw new ContractError(
-        "AUTHENTICATION_REQUIRED",
-        "User must be logged in"
-      );
+      throw new ContractError("User must be logged in", {
+        code: "AUTHENTICATION_REQUIRED",
+        category: ErrorCategory.AUTHENTICATION,
+      });
     }
 
     if (!context.session || new Date(context.session.expiresAt) < new Date()) {
-      throw new ContractError("SESSION_EXPIRED", "Session has expired");
+      throw new ContractError("Session has expired", {
+        code: "SESSION_EXPIRED",
+        category: ErrorCategory.AUTHENTICATION,
+      });
     }
 
-    if (requiredRole && !context.user.roles.includes(requiredRole)) {
+    if (effectiveRequiredRole && !context.user!.roles.includes(effectiveRequiredRole)) {
       throw new ContractError(
-        "INSUFFICIENT_ROLE",
-        `Required role: ${requiredRole}, User roles: ${context.user.roles.join(
+        `Required role: ${effectiveRequiredRole}, User roles: ${context.user.roles.join(
           ", "
-        )}`
+        )}`,
+        {
+          code: "INSUFFICIENT_ROLE",
+          category: ErrorCategory.AUTHORIZATION,
+        }
       );
     }
 

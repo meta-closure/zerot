@@ -30,6 +30,14 @@ const userOutputSchema = z.object({
   updatedAt: z.date(),
 });
 
+/**
+ * Retrieves the appropriate Zod schema for a given resource and operation.
+ * This function acts as a lookup for input/output validation schemas.
+ *
+ * @param resource - The name of the resource (e.g., "user", "product").
+ * @param operation - The type of operation (e.g., "create", "update", "output").
+ * @returns The Zod schema corresponding to the resource and operation, or `z.any()` if not found.
+ */
 function getSchemaForResource(
   resource: string,
   operation: string
@@ -97,20 +105,23 @@ export function smartContract(options: {
   // Authentication requirements based on visibility
   switch (options.visibility) {
     case "public":
-      // No authentication required
+      // No authentication required for public operations
       break;
     case "private":
+      // Private operations require user authentication
       contracts.requires!.push(auth("user"));
+      // For non-create private operations, ownership check is required
       if (options.operation !== "create") {
         contracts.requires!.push(owns(`${options.resource}Id`));
       }
       break;
     case "admin":
+      // Admin operations require admin authentication
       contracts.requires!.push(auth("admin"));
       break;
   }
 
-  // Validation requirements based on operation
+  // Input validation requirements based on operation
   if (["create", "update"].includes(options.operation)) {
     // Input validation is required for create/update operations
     contracts.requires!.push(
@@ -118,17 +129,17 @@ export function smartContract(options: {
     );
   }
 
-  // Rate limiting
+  // Rate limiting condition
   if (options.rateLimit) {
     contracts.requires!.push(
       rateLimit(`${options.operation}_${options.resource}`, options.rateLimit)
     );
   }
 
-  // Audit logging
+  // Audit logging condition (always included for traceability)
   contracts.ensures!.push(auditLog(`${options.operation}_${options.resource}`));
 
-  // Output validation
+  // Output validation condition
   if (["create", "read", "update"].includes(options.operation)) {
     contracts.ensures!.push(
       returns(getSchemaForResource(options.resource, "output"))
