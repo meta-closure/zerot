@@ -22,8 +22,12 @@ export class ContractPerformanceMonitor {
 
     const recordMetrics = (success: boolean) => {
       const duration = performance.now() - start;
-      Metrics.record(`contract_execution_time_${contractName}`, duration, { success: String(success) });
-      Metrics.increment(`contract_executions_${contractName}`, { success: String(success) });
+      Metrics.record(`contract_execution_time_${contractName}`, duration, {
+        success: String(success),
+      });
+      Metrics.increment(`contract_executions_${contractName}`, {
+        success: String(success),
+      });
       if (!success) {
         Metrics.increment(`contract_failures_${contractName}`);
       }
@@ -61,22 +65,25 @@ export class ContractPerformanceMonitor {
     const performanceReport: any[] = [];
 
     for (const key in rawReport) {
-      if (key.startsWith('contract_execution_time_')) {
-        const contractName = key.replace('contract_execution_time_', '');
+      if (key.startsWith("contract_execution_time_")) {
+        const contractName = key.replace("contract_execution_time_", "");
         const executionTimeStats = rawReport[key];
-        const executionCountMetric = rawReport[`contract_executions_${contractName}`];
-        const failureCountMetric = rawReport[`contract_failures_${contractName}`];
+        const executionCountMetric =
+          rawReport[`contract_executions_${contractName}`];
+        const failureCountMetric =
+          rawReport[`contract_failures_${contractName}`];
 
         if (executionTimeStats && executionCountMetric) {
           const executions = executionCountMetric.total || 0;
           const failures = failureCountMetric ? failureCountMetric.total : 0;
           const totalTime = executionTimeStats.sum || 0;
           const avgTime = executionTimeStats.avg || 0;
-          const failureRate = executions > 0 ? ((failures / executions) * 100).toFixed(1) : '0.0';
+          const failureRate =
+            executions > 0 ? ((failures / executions) * 100).toFixed(1) : "0.0";
 
           performanceReport.push({
             contract: contractName,
-            executions: executions,
+            executions,
             avgTimeMs: parseFloat(avgTime.toFixed(2)),
             failureRate: `${failureRate}%`,
             totalTimeMs: parseFloat(totalTime.toFixed(2)),

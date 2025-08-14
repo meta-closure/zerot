@@ -1,12 +1,9 @@
 import {
-  ContractOptions,
-  getAuthContext,
-  ContractCondition,
-  ContractEnsuresCondition,
-  ContractInvariant,
-  AuthContext,
-} from "~/core/types";
-import { ContractError, ContractViolationError, ErrorCategory } from "~/core/errors";
+  ContractError,
+  ContractViolationError,
+  ErrorCategory,
+} from "~/core/errors";
+import { AuthContext, ContractOptions, getAuthContext } from "~/core/types";
 import { delay } from "~/utils/delay";
 import { logger } from "~/utils/logger";
 import { isValidator } from "~/utils/type-guards";
@@ -40,11 +37,15 @@ import { isValidator } from "~/utils/type-guards";
 export function contract<
   Method extends (...args: any[]) => Promise<any>, // Ensure method returns a Promise
   TInput = Parameters<Method>[0],
-  TContext extends AuthContext = Parameters<Method> extends [any, infer C] ? (C extends AuthContext ? C : AuthContext) : AuthContext,
-  TOutput = Method extends (...args: any[]) => Promise<infer R> ? R : ReturnType<Method> // Unwrap Promise
->(
-  options: ContractOptions<TInput, TOutput, TContext>
-) {
+  TContext extends AuthContext = Parameters<Method> extends [any, infer C]
+    ? C extends AuthContext
+      ? C
+      : AuthContext
+    : AuthContext,
+  TOutput = Method extends (...args: any[]) => Promise<infer R>
+    ? R
+    : ReturnType<Method>, // Unwrap Promise
+>(options: ContractOptions<TInput, TOutput, TContext>) {
   /**
    * Decorator function that applies the contract logic to the target method.
    * @param target - The prototype of the class.
@@ -81,10 +82,11 @@ export function contract<
       const contractName = `${target.constructor.name}.${propertyName}`;
 
       // If context is not passed as an argument, retrieve it from the global session provider.
-      const context: TContext =
-        (contextFromArgs || (await getAuthContext())) as TContext; // Cast to TContext
+      const context: TContext = (contextFromArgs ||
+        (await getAuthContext())) as TContext; // Cast to TContext
 
-      const maxAttempts = options.retryAttempts !== undefined ? options.retryAttempts + 1 : 1; // +1 for the initial attempt
+      const maxAttempts =
+        options.retryAttempts !== undefined ? options.retryAttempts + 1 : 1; // +1 for the initial attempt
       const retryDelay = options.retryDelayMs || 100;
       const retryOnCategories = options.retryOnCategories;
 
@@ -105,20 +107,30 @@ export function contract<
               } else {
                 // For other conditions, evaluate the result.
                 // The cast to ContractCondition is safe here because isValidator has already checked for validators.
-                const conditionResult = await (condition as ContractCondition<TInput, TContext>)(validatedInput, context);
+                const conditionResult = await condition(
+                  validatedInput,
+                  context
+                );
                 if (conditionResult instanceof ContractError) {
                   // If a ContractError is returned, it indicates a specific failure.
-                  throw new ContractViolationError(contractName, options.layer || "unknown", conditionResult);
+                  throw new ContractViolationError(
+                    contractName,
+                    options.layer || "unknown",
+                    conditionResult
+                  );
                 } else if (conditionResult === false) {
                   // If false is returned, it indicates a generic precondition failure.
                   throw new ContractViolationError(
                     contractName,
                     options.layer || "unknown",
-                    new ContractError(`Precondition failed for ${contractName}`, {
-                      code: "PRECONDITION_FAILED",
-                      category: ErrorCategory.VALIDATION,
-                      details: { contractName },
-                    })
+                    new ContractError(
+                      `Precondition failed for ${contractName}`,
+                      {
+                        code: "PRECONDITION_FAILED",
+                        category: ErrorCategory.VALIDATION,
+                        details: { contractName },
+                      }
+                    )
                   );
                 }
               }
@@ -129,7 +141,11 @@ export function contract<
                 throw error;
               } else if (error instanceof ContractError) {
                 // Wrap ContractError in ContractViolationError
-                throw new ContractViolationError(contractName, options.layer || "unknown", error);
+                throw new ContractViolationError(
+                  contractName,
+                  options.layer || "unknown",
+                  error
+                );
               } else {
                 // Wrap other errors in ContractError then ContractViolationError
                 const contractError = new ContractError(
@@ -137,27 +153,46 @@ export function contract<
                   {
                     code: "UNEXPECTED_ERROR",
                     category: ErrorCategory.SYSTEM,
-                    details: { originalErrorMessage: (error as Error).message, originalErrorStack: (error as Error).stack },
+                    details: {
+                      originalErrorMessage: (error as Error).message,
+                      originalErrorStack: (error as Error).stack,
+                    },
                     isRecoverable: false,
                   }
                 );
-                throw new ContractViolationError(contractName, options.layer || "unknown", contractError);
+                throw new ContractViolationError(
+                  contractName,
+                  options.layer || "unknown",
+                  contractError
+                );
               }
             }
           }
 
           // Execute the original method
-          const result: TOutput = await originalMethod.call(this, validatedInput, context);
+          const result: TOutput = await originalMethod.call(
+            this,
+            validatedInput,
+            context
+          );
 
           /**
            * Post-condition checks (ensures)
            * These conditions must pass after the original method has successfully executed.
            */
           for (const condition of options.ensures || []) {
-            const checkResult = await (condition as ContractEnsuresCondition<TOutput, TInput, TContext>)(result, validatedInput, context);
+            const checkResult = await condition(
+              result,
+              validatedInput,
+              context
+            );
             if (checkResult instanceof ContractError) {
               // If a ContractError is returned, it indicates a specific failure.
-              throw new ContractViolationError(contractName, options.layer || "unknown", checkResult);
+              throw new ContractViolationError(
+                contractName,
+                options.layer || "unknown",
+                checkResult
+              );
             } else if (checkResult === false) {
               // If false is returned, it indicates a generic postcondition failure.
               throw new ContractViolationError(
@@ -177,20 +212,27 @@ export function contract<
            * These conditions must hold true both before and after method execution.
            */
           for (const invariant of options.invariants || []) {
-            const invariantResult = await (invariant as ContractInvariant<TInput, TOutput>)(validatedInput, result);
+            const invariantResult = await invariant(validatedInput, result);
             if (invariantResult instanceof ContractError) {
               // If a ContractError is returned, it indicates a specific failure.
-              throw new ContractViolationError(contractName, options.layer || "unknown", invariantResult);
+              throw new ContractViolationError(
+                contractName,
+                options.layer || "unknown",
+                invariantResult
+              );
             } else if (invariantResult === false) {
               // If false is returned, it indicates a generic invariant failure.
               throw new ContractViolationError(
                 contractName,
                 options.layer || "unknown",
-                new ContractError(`Invariant condition failed in ${contractName}`, {
-                  code: "INVARIANT_VIOLATION",
-                  category: ErrorCategory.BUSINESS_LOGIC,
-                  details: { contractName },
-                })
+                new ContractError(
+                  `Invariant condition failed in ${contractName}`,
+                  {
+                    code: "INVARIANT_VIOLATION",
+                    category: ErrorCategory.BUSINESS_LOGIC,
+                    details: { contractName },
+                  }
+                )
               );
             }
           }
@@ -198,19 +240,28 @@ export function contract<
           return result; // If successful, break the retry loop
         } catch (error) {
           attempts++;
-          
+
           // Handle ContractViolationError differently - don't wrap it again
           if (error instanceof ContractViolationError) {
             // For ContractViolationError, check if retry is warranted based on the original error
             const originalError = error.originalError;
-            const isRecoverable = originalError instanceof ContractError ? originalError.isRecoverable : false;
-            const category = originalError instanceof ContractError ? originalError.category : ErrorCategory.UNKNOWN;
-            const code = originalError instanceof ContractError ? originalError.code : "UNKNOWN_ERROR";
-            
-            const shouldRetry = (
-              isRecoverable ||
-              (retryOnCategories && retryOnCategories.includes(category))
-            ) && attempts < maxAttempts;
+            const isRecoverable =
+              originalError instanceof ContractError
+                ? originalError.isRecoverable
+                : false;
+            const category =
+              originalError instanceof ContractError
+                ? originalError.category
+                : ErrorCategory.UNKNOWN;
+            const code =
+              originalError instanceof ContractError
+                ? originalError.code
+                : "UNKNOWN_ERROR";
+
+            const shouldRetry =
+              (isRecoverable ||
+                (retryOnCategories && retryOnCategories.includes(category))) &&
+              attempts < maxAttempts;
 
             if (shouldRetry) {
               logger.warn(
@@ -231,23 +282,25 @@ export function contract<
             }
           } else {
             // Determine if the caught error is a ContractError or a generic error
-            const contractError = error instanceof ContractError
-              ? error
-              : new ContractError(
-                  (error as Error).message,
-                  {
+            const contractError =
+              error instanceof ContractError
+                ? error
+                : new ContractError((error as Error).message, {
                     code: "UNEXPECTED_ERROR",
                     category: ErrorCategory.SYSTEM,
-                    details: { originalErrorMessage: (error as Error).message, originalErrorStack: (error as Error).stack },
+                    details: {
+                      originalErrorMessage: (error as Error).message,
+                      originalErrorStack: (error as Error).stack,
+                    },
                     isRecoverable: false,
-                  }
-                );
+                  });
 
             // Check if a retry is warranted based on recoverability or specified categories
-            const shouldRetry = (
-              contractError.isRecoverable ||
-              (retryOnCategories && retryOnCategories.includes(contractError.category))
-            ) && attempts < maxAttempts;
+            const shouldRetry =
+              (contractError.isRecoverable ||
+                (retryOnCategories &&
+                  retryOnCategories.includes(contractError.category))) &&
+              attempts < maxAttempts;
 
             if (shouldRetry) {
               logger.warn(
@@ -275,12 +328,15 @@ export function contract<
       }
       // This part should ideally not be reached if maxAttempts is handled correctly,
       // but as a fallback, throw an error if all attempts fail.
-      throw new ContractError(`Failed to execute ${contractName} after ${maxAttempts} attempts.`, {
-        code: "MAX_RETRY_ATTEMPTS_EXCEEDED",
-        category: ErrorCategory.SYSTEM,
-        details: { contractName, maxAttempts },
-        isRecoverable: false,
-      });
+      throw new ContractError(
+        `Failed to execute ${contractName} after ${maxAttempts} attempts.`,
+        {
+          code: "MAX_RETRY_ATTEMPTS_EXCEEDED",
+          category: ErrorCategory.SYSTEM,
+          details: { contractName, maxAttempts },
+          isRecoverable: false,
+        }
+      );
     };
 
     return descriptor;

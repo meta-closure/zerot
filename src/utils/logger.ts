@@ -40,7 +40,11 @@ class ConsoleLogger implements Logger {
    * @param message - The message to log.
    * @param metadata - Optional metadata to include with the log.
    */
-  private log(level: 'debug' | 'info' | 'warn' | 'error', message: string, metadata?: Record<string, any>): void {
+  private log(
+    level: "debug" | "info" | "warn" | "error",
+    message: string,
+    metadata?: Record<string, any>
+  ): void {
     // シンプルな実装、設定に依存しない
     const logEntry = {
       timestamp: new Date().toISOString(),
@@ -80,7 +84,7 @@ class ConsoleLogger implements Logger {
 
   debug(message: string, metadata?: Record<string, any>): void {
     // 開発環境でのみログ出力
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       this.log("debug", message, metadata);
     }
   }

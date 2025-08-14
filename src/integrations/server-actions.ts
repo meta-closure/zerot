@@ -33,24 +33,27 @@ import { logger } from "~/utils/logger";
  * class PostActions {
  *   @contract({
  *     requires: [auth("user"), validates(CreatePostSchema)],
-   *   })
-   *   async createPost(input: z.infer<typeof CreatePostSchema>, context: any) {
-   *     logger.debug(`Creating post: ${JSON.stringify(input)} by user: ${context.user?.id}`);
-   *     // Logic to save post to DB
-   *     return { postId: "new-post-id", ...input };
-   *   }
-   * }
-   *
-   * export const createPostAction = createServerAction(new PostActions().createPost);
-   * ```
-   */
+ *   })
+ *   async createPost(input: z.infer<typeof CreatePostSchema>, context: any) {
+ *     logger.debug(`Creating post: ${JSON.stringify(input)} by user: ${context.user?.id}`);
+ *     // Logic to save post to DB
+ *     return { postId: "new-post-id", ...input };
+ *   }
+ * }
+ *
+ * export const createPostAction = createServerAction(new PostActions().createPost);
+ * ```
+ */
 export function createServerAction<TInput, TOutput>(
   actionFn: (input: TInput, context: any) => Promise<TOutput> | TOutput
 ) {
   return async (formData: FormData | TInput): Promise<any> => {
     // Logic to extract input from FormData needs to be adjusted based on specific use cases.
     // Here, if it's FormData, convert it to an object; otherwise, treat it as direct input.
-    const input = formData instanceof FormData ? Object.fromEntries(formData.entries()) as TInput : formData;
+    const input =
+      formData instanceof FormData
+        ? (Object.fromEntries(formData.entries()) as TInput)
+        : formData;
 
     try {
       const context = await getAuthContext(); // Retrieve context from the global session provider

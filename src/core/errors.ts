@@ -57,21 +57,35 @@ export class ContractViolationError extends ContractError {
     /** The layer in which the contract violation occurred (e.g., "presentation", "business"). */
     public layer: string,
     /** The original error that caused the contract violation. */
-    public originalError: ContractError | Error, // Ensure originalError is typed
+    public originalError: ContractError | Error // Ensure originalError is typed
   ) {
     // If originalError is a ContractError, use its properties; otherwise, default
-    const code = originalError instanceof ContractError ? originalError.code : "CONTRACT_VIOLATION";
-    const category = originalError instanceof ContractError ? originalError.category : ErrorCategory.BUSINESS_LOGIC;
-    const details = originalError instanceof ContractError ? originalError.details : {};
-    const isRecoverable = originalError instanceof ContractError ? originalError.isRecoverable : false;
+    const code =
+      originalError instanceof ContractError
+        ? originalError.code
+        : "CONTRACT_VIOLATION";
+    const category =
+      originalError instanceof ContractError
+        ? originalError.category
+        : ErrorCategory.BUSINESS_LOGIC;
+    const details =
+      originalError instanceof ContractError ? originalError.details : {};
+    const isRecoverable =
+      originalError instanceof ContractError
+        ? originalError.isRecoverable
+        : false;
 
     super(
       `Contract violation in ${layer}.${contractName}: ${originalError.message}`,
       {
-        code: code,
-        category: category,
-        details: { ...details, originalErrorMessage: originalError.message, originalErrorStack: originalError.stack },
-        isRecoverable: isRecoverable,
+        code,
+        category,
+        details: {
+          ...details,
+          originalErrorMessage: originalError.message,
+          originalErrorStack: originalError.stack,
+        },
+        isRecoverable,
       }
     );
     this.name = "ContractViolationError";
@@ -83,7 +97,11 @@ export class ContractViolationError extends ContractError {
    * to return a user-friendly or system-appropriate response.
    * @returns An object containing response details, such as redirect paths or error messages.
    */
-  getAppropriateResponse(): { redirect?: string; error?: string; success?: boolean } {
+  getAppropriateResponse(): {
+    redirect?: string;
+    error?: string;
+    success?: boolean;
+  } {
     switch (this.layer) {
       case "presentation":
         return { redirect: "/login", error: "Authentication required" };

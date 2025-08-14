@@ -23,8 +23,12 @@ export class OptimizedContractSystem {
    * @param contractName - The name of the contract to analyze.
    * @returns An object containing optimization suggestions.
    */
-  static analyzeForOptimization(contractName: string): { suggestions: string[] } {
+  static analyzeForOptimization(contractName: string): {
+    suggestions: string[];
+  } {
     // Placeholder for analysis logic
-    return { suggestions: [`Consider optimizing ${contractName} for performance.`] };
+    return {
+      suggestions: [`Consider optimizing ${contractName} for performance.`],
+    };
   }
 }

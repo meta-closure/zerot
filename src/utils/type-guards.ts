@@ -1,4 +1,8 @@
-import { ContractCondition, ContractValidator, AuthContext } from "~/core/types";
+import {
+  AuthContext,
+  ContractCondition,
+  ContractValidator,
+} from "zerot/core/types";
 
 /**
  * Type guard to check if a given object is a ContractValidator.
@@ -12,5 +16,5 @@ import { ContractCondition, ContractValidator, AuthContext } from "~/core/types"
 export const isValidator = <TInput, TContext extends AuthContext>(
   c: ContractCondition<TInput, TContext> | ContractValidator<TInput, any>
 ): c is ContractValidator<TInput, any> => {
-  return typeof c === 'function' && (c as any).isValidator === true;
+  return typeof c === "function" && (c as any).isValidator === true;
 };

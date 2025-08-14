@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { ContractError, ErrorCategory } from "~/core/errors";
-import { ContractValidator, ContractEnsuresCondition } from "~/core/types"; // Import generic types
-import { logger } from "~/utils/logger";
+import { ContractEnsuresCondition, ContractValidator } from "~/core/types"; // Import generic types
 
 /**
  * Creates a validation condition that uses a Zod schema to validate and optionally transform input.
@@ -30,7 +29,11 @@ import { logger } from "~/utils/logger";
  * }
  * ```
  */
-export function validates<TSchema extends z.ZodSchema, TInput = unknown, TOutput = z.infer<TSchema>>(
+export function validates<
+  TSchema extends z.ZodSchema,
+  TInput = unknown,
+  TOutput = z.infer<TSchema>,
+>(
   schema: TSchema,
   transformer?: (input: z.infer<TSchema>) => TOutput
 ): ContractValidator<TInput, TOutput> {
@@ -83,22 +86,32 @@ export function validates<TSchema extends z.ZodSchema, TInput = unknown, TOutput
  * }
  * ```
  */
-export function returns<TSchema extends z.ZodSchema, TOutput = z.infer<TSchema>, TInput = any, TContext = any>(
-  schema: TSchema
-): ContractEnsuresCondition<TOutput, TInput, TContext> {
-  return (output: TOutput, input: TInput, context: TContext) => {
+export function returns<
+  TSchema extends z.ZodSchema,
+  TOutput = z.infer<TSchema>,
+  TInput = any,
+  TContext = any,
+>(schema: TSchema): ContractEnsuresCondition<TOutput, TInput, TContext> {
+  return (output: TOutput, _input: TInput, _context: TContext) => {
     try {
       schema.parse(output);
       return true;
     } catch (error: unknown) {
       // Ensure all caught errors are wrapped in ContractError for consistent handling
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const errorStack = error instanceof Error ? error.stack : undefined;
-      return new ContractError(`Output does not match expected schema: ${errorMessage}`, {
-        code: "OUTPUT_VALIDATION_FAILED",
-        category: ErrorCategory.VALIDATION,
-        details: { originalErrorMessage: errorMessage, originalErrorStack: errorStack },
-      });
+      return new ContractError(
+        `Output does not match expected schema: ${errorMessage}`,
+        {
+          code: "OUTPUT_VALIDATION_FAILED",
+          category: ErrorCategory.VALIDATION,
+          details: {
+            originalErrorMessage: errorMessage,
+            originalErrorStack: errorStack,
+          },
+        }
+      );
     }
   };
 }

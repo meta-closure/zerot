@@ -2,7 +2,7 @@ import { AuthContext } from "~/core/types";
 
 export async function logAuditEvent(event: any): Promise<void> {
   // 開発環境でのみコンソール出力
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === "development") {
     console.log("AUDIT LOG:", event);
   }
   // 本番環境では外部ログサービスに送信
@@ -55,20 +55,15 @@ export function auditLog(action: string) {
     input: any,
     context: AuthContext
   ): Promise<boolean> => {
-    try {
-      await logAuditEvent({
-        action,
-        userId: context.user?.id || "anonymous",
-        resourceId: input.id || input.userId || "N/A",
-        timestamp: new Date(),
-        input: sanitizeForAudit(input),
-        output: sanitizeForAudit(output),
-        success: true,
-      });
-      return true;
-    } catch (error) {
-      // Re-throw the error to allow proper error handling by the calling code
-      throw error;
-    }
+    await logAuditEvent({
+      action,
+      userId: context.user?.id || "anonymous",
+      resourceId: input.id || input.userId || "N/A",
+      timestamp: new Date(),
+      input: sanitizeForAudit(input),
+      output: sanitizeForAudit(output),
+      success: true,
+    });
+    return true;
   };
 }

@@ -1,11 +1,11 @@
-import { ContractOptions } from "~/core/types";
+import { z } from "zod";
+import { auditLog } from "~/conditions/audit";
 import { auth } from "~/conditions/auth";
-import { validates, returns } from "~/conditions/validation";
 import { owns } from "~/conditions/owns";
 import { rateLimit } from "~/conditions/rate-limit";
-import { auditLog } from "~/conditions/audit";
+import { returns, validates } from "~/conditions/validation";
 import { ContractError, ErrorCategory } from "~/core/errors";
-import { z } from "zod";
+import { ContractOptions } from "~/core/types";
 
 /**
  * Zod schema for updating user information.
@@ -87,24 +87,21 @@ export const ContractTemplates = {
    * @param itemContract - Optional `ContractOptions` to apply to each item within the batch (not directly used here, but for conceptual extension).
    * @returns `ContractOptions` configured for batch operations.
    */
-  batchOperation: (itemContract: ContractOptions): ContractOptions => ({
+  batchOperation: (): ContractOptions => ({
     requires: [
       auth("admin"),
       (input: any[]) => {
         if (!Array.isArray(input)) {
-          throw new ContractError('Input must be an array', {
-            code: 'INVALID_BATCH_INPUT',
+          throw new ContractError("Input must be an array", {
+            code: "INVALID_BATCH_INPUT",
             category: ErrorCategory.VALIDATION,
           });
         }
         if (input.length > 1000) {
-          throw new ContractError(
-            "Batch size must be ≤ 1000 items",
-            {
-              code: "BATCH_TOO_LARGE",
-              category: ErrorCategory.VALIDATION,
-            }
-          );
+          throw new ContractError("Batch size must be ≤ 1000 items", {
+            code: "BATCH_TOO_LARGE",
+            category: ErrorCategory.VALIDATION,
+          });
         }
         return true;
       },

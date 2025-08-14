@@ -1,4 +1,3 @@
-import { z } from "zod";
 import { ContractError, ErrorCategory } from "~/core/errors";
 
 /**
@@ -10,11 +9,15 @@ import { ContractError, ErrorCategory } from "~/core/errors";
  * @returns true if the condition is a validator, false otherwise.
  */
 export function isValidator<TInput = any, TContext = any>(
-  condition: ContractCondition<TInput, TContext> | ContractValidator<TInput, any>
+  condition:
+    | ContractCondition<TInput, TContext>
+    | ContractValidator<TInput, any>
 ): condition is ContractValidator<TInput, any> {
-  return typeof condition === 'function' && 
-         'isValidator' in condition && 
-         condition.isValidator === true;
+  return (
+    typeof condition === "function" &&
+    "isValidator" in condition &&
+    condition.isValidator === true
+  );
 }
 
 /**
@@ -39,7 +42,9 @@ export type ContractCondition<TInput = any, TContext = any> = (
  * @param input - The input to be validated and potentially transformed.
  * @returns The transformed input.
  */
-export type ContractValidator<TInput = unknown, TOutput = any> = ((input: TInput) => TOutput) & { isValidator?: boolean };
+export type ContractValidator<TInput = unknown, TOutput = any> = ((
+  input: TInput
+) => TOutput) & { isValidator?: boolean };
 
 /**
  * Defines a contract ensures condition function (post-condition).
@@ -51,7 +56,11 @@ export type ContractValidator<TInput = unknown, TOutput = any> = ((input: TInput
  * @param context - The authentication context.
  * @returns A boolean indicating if the condition passes, or a Promise resolving to a boolean, or a ContractError/Promise of ContractError if the condition fails with a specific error.
  */
-export type ContractEnsuresCondition<TOutput = any, TInput = any, TContext = any> = (
+export type ContractEnsuresCondition<
+  TOutput = any,
+  TInput = any,
+  TContext = any,
+> = (
   output: TOutput,
   input: TInput,
   context: TContext
@@ -77,11 +86,17 @@ export type ContractInvariant<TInput = any, TOutput = any> = (
  * @template TOutput - The expected type of the output of the method.
  * @template TContext - The expected type of the authentication context.
  */
-export interface ContractOptions<TInput = any, TOutput = any, TContext = AuthContext> {
+export interface ContractOptions<
+  TInput = any,
+  TOutput = any,
+  TContext = AuthContext,
+> {
   /**
    * An array of pre-conditions that must pass before the method executes.
    */
-  requires?: Array<ContractCondition<TInput, TContext> | ContractValidator<TInput, any>>;
+  requires?: Array<
+    ContractCondition<TInput, TContext> | ContractValidator<TInput, any>
+  >;
   /**
    * An array of post-conditions that must pass after the method executes successfully.
    */
@@ -142,13 +157,19 @@ export interface AuthContext {
  * Abstract type for a session provider function.
  * This function is responsible for retrieving the authentication context.
  */
-export type SessionProvider = () => Promise<AuthContext> | AuthContext | null | undefined;
+export type SessionProvider = () =>
+  | Promise<AuthContext>
+  | AuthContext
+  | null
+  | undefined;
 
 /**
  * Abstract type for a resource provider function.
  * This function is responsible for retrieving a resource by its ID.
  */
-export type ResourceProvider = (resourceId: string) => Promise<{ id: string; userId: string } | null>;
+export type ResourceProvider = (
+  resourceId: string
+) => Promise<{ id: string; userId: string } | null>;
 
 /**
  * Internal variable to hold the session provider instance.
@@ -195,12 +216,12 @@ export async function getAuthContext(): Promise<AuthContext> {
 
   try {
     const result = await _sessionProvider();
-    
+
     // Handle null or undefined results by returning empty context
-    if (result == null) {
+    if (result === null || result === undefined) {
       return {};
     }
-    
+
     return result;
   } catch (error) {
     // Return empty context on any error (synchronous or asynchronous)
@@ -214,9 +235,13 @@ export async function getAuthContext(): Promise<AuthContext> {
  * @returns A Promise that resolves to the resource object or null if not found.
  * @throws {Error} If no resource provider has been set.
  */
-export async function getResource(resourceId: string): Promise<{ id: string; userId: string } | null> {
+export async function getResource(
+  resourceId: string
+): Promise<{ id: string; userId: string } | null> {
   if (!_resourceProvider) {
-    throw new Error("Resource provider not set. Call setResourceProvider to configure how resources are retrieved.");
+    throw new Error(
+      "Resource provider not set. Call setResourceProvider to configure how resources are retrieved."
+    );
   }
   return await _resourceProvider(resourceId);
 }

@@ -1,0 +1,47 @@
+# Build outputs
+dist/
+build/
+out/
+
+# Dependencies
+node_modules/
+
+# Generated files
+*.d.ts
+docs/
+coverage/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Next.js
+.next/
+
+# Temporary folders
+tmp/
+temp/
+
+# Configuration files that might contain sensitive data
+.env
+.env.local
+.env.production
+.env.development

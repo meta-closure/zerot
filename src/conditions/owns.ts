@@ -1,6 +1,5 @@
 import { ContractError, ErrorCategory } from "~/core/errors";
 import { AuthContext, getResource } from "~/core/types"; // Import getResource
-import { logger } from "~/utils/logger";
 
 /**
  * Creates an ownership check condition.
@@ -43,10 +42,13 @@ export function owns(resourceIdField: string) {
 
     const resourceId = input[resourceIdField];
     if (!resourceId) {
-      throw new ContractError(`Resource ID field '${resourceIdField}' is missing in input`, {
-        code: "MISSING_RESOURCE_ID",
-        category: ErrorCategory.VALIDATION,
-      });
+      throw new ContractError(
+        `Resource ID field '${resourceIdField}' is missing in input`,
+        {
+          code: "MISSING_RESOURCE_ID",
+          category: ErrorCategory.VALIDATION,
+        }
+      );
     }
 
     // admin チェックを強化
@@ -66,10 +68,13 @@ export function owns(resourceIdField: string) {
     }
 
     if (resource.userId !== context.user.id) {
-      throw new ContractError(`User ${context.user.id} does not own resource ${resourceId}`, {
-        code: "OWNERSHIP_DENIED",
-        category: ErrorCategory.AUTHORIZATION,
-      });
+      throw new ContractError(
+        `User ${context.user.id} does not own resource ${resourceId}`,
+        {
+          code: "OWNERSHIP_DENIED",
+          category: ErrorCategory.AUTHORIZATION,
+        }
+      );
     }
 
     return true;

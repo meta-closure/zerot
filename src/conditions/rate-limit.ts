@@ -1,6 +1,5 @@
 import { ContractError, ErrorCategory } from "~/core/errors";
 import { AuthContext } from "~/core/types";
-import { logger } from "~/utils/logger";
 
 /**
  * Creates a rate limiting condition.
@@ -37,7 +36,11 @@ import { logger } from "~/utils/logger";
 // シンプルなインメモリストア
 const rateStore = new Map<string, { count: number; lastReset: number }>();
 
-export function rateLimit(operation: string, maxPerWindow: number, windowMs: number = 60000) {
+export function rateLimit(
+  operation: string,
+  maxPerWindow: number,
+  windowMs: number = 60000
+) {
   return async (input: any, context: AuthContext): Promise<boolean> => {
     if (!context.user?.id) {
       throw new ContractError("User ID required for rate limiting", {
@@ -51,10 +54,10 @@ export function rateLimit(operation: string, maxPerWindow: number, windowMs: num
     const now = Date.now();
 
     // ウィンドウリセット
-    if (!entry || (now - entry.lastReset) > windowMs) {
+    if (!entry || now - entry.lastReset > windowMs) {
       rateStore.set(key, { count: 0, lastReset: now });
     }
-    
+
     const current = rateStore.get(key)?.count || 0;
 
     if (current >= maxPerWindow) {
@@ -72,7 +75,7 @@ export function rateLimit(operation: string, maxPerWindow: number, windowMs: num
     // カウンター増加
     const currentEntry = rateStore.get(key)!;
     rateStore.set(key, { ...currentEntry, count: currentEntry.count + 1 });
-    
+
     return true;
   };
 }

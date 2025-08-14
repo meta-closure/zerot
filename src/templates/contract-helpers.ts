@@ -22,7 +22,7 @@ export const ContractHelpers = {
     const result: ContractOptions = {
       requires: [],
       ensures: [],
-      invariants: []
+      invariants: [],
     };
 
     for (const contract of contracts) {
@@ -35,12 +35,20 @@ export const ContractHelpers = {
       if (contract.invariants) {
         result.invariants!.push(...contract.invariants);
       }
-      
+
       // Override non-array properties
-      if (contract.layer) result.layer = contract.layer;
-      if (contract.retryAttempts !== undefined) result.retryAttempts = contract.retryAttempts;
-      if (contract.retryDelayMs !== undefined) result.retryDelayMs = contract.retryDelayMs;
-      if (contract.retryOnCategories) result.retryOnCategories = contract.retryOnCategories;
+      if (contract.layer) {
+        result.layer = contract.layer;
+      }
+      if (contract.retryAttempts !== undefined) {
+        result.retryAttempts = contract.retryAttempts;
+      }
+      if (contract.retryDelayMs !== undefined) {
+        result.retryDelayMs = contract.retryDelayMs;
+      }
+      if (contract.retryOnCategories) {
+        result.retryOnCategories = contract.retryOnCategories;
+      }
     }
 
     return result;
@@ -51,7 +59,7 @@ export const ContractHelpers = {
    */
   authenticated(role: string = "user"): Partial<ContractOptions> {
     return {
-      requires: [auth(role)]
+      requires: [auth(role)],
     };
   },
 
@@ -60,7 +68,7 @@ export const ContractHelpers = {
    */
   withOwnership(resourceField: string): Partial<ContractOptions> {
     return {
-      requires: [owns(resourceField)]
+      requires: [owns(resourceField)],
     };
   },
 
@@ -68,26 +76,30 @@ export const ContractHelpers = {
    * Create a validated contract with input/output schemas.
    */
   validated<TInput, TOutput>(
-    inputSchema: z.ZodSchema<TInput>, 
+    inputSchema: z.ZodSchema<TInput>,
     outputSchema?: z.ZodSchema<TOutput>
   ): Partial<ContractOptions> {
     const contract: Partial<ContractOptions> = {
-      requires: [validates(inputSchema)]
+      requires: [validates(inputSchema)],
     };
-    
+
     if (outputSchema) {
       contract.ensures = [returns(outputSchema)];
     }
-    
+
     return contract;
   },
 
   /**
    * Create a rate-limited contract.
    */
-  rateLimited(operation: string, limit: number, windowMs?: number): Partial<ContractOptions> {
+  rateLimited(
+    operation: string,
+    limit: number,
+    windowMs?: number
+  ): Partial<ContractOptions> {
     return {
-      requires: [rateLimit(operation, limit, windowMs)]
+      requires: [rateLimit(operation, limit, windowMs)],
     };
   },
 
@@ -96,7 +108,7 @@ export const ContractHelpers = {
    */
   audited(action: string): Partial<ContractOptions> {
     return {
-      ensures: [auditLog(action)]
+      ensures: [auditLog(action)],
     };
   },
 
@@ -106,21 +118,23 @@ export const ContractHelpers = {
   withRetry(attempts: number, delayMs?: number): Partial<ContractOptions> {
     return {
       retryAttempts: attempts,
-      retryDelayMs: delayMs
+      retryDelayMs: delayMs,
     };
   },
 
   /**
    * Create a contract with custom business rules.
    */
-  withBusinessRules(...rules: Array<{
-    description: string;
-    rule: (input: any, context: any) => boolean | Promise<boolean>;
-  }>): Partial<ContractOptions> {
+  withBusinessRules(
+    ...rules: Array<{
+      description: string;
+      rule: (input: any, context: any) => boolean | Promise<boolean>;
+    }>
+  ): Partial<ContractOptions> {
     return {
-      requires: rules.map(r => businessRule(r.description, r.rule))
+      requires: rules.map((r) => businessRule(r.description, r.rule)),
     };
-  }
+  },
 };
 
 /**
@@ -140,9 +154,13 @@ export const ExtendedContractTemplates = {
   }): ContractOptions {
     return ContractHelpers.combine(
       ContractHelpers.authenticated(options.role),
-      options.resourceField ? ContractHelpers.withOwnership(options.resourceField) : {},
+      options.resourceField
+        ? ContractHelpers.withOwnership(options.resourceField)
+        : {},
       ContractHelpers.validated(options.inputSchema, options.outputSchema),
-      options.rateLimit ? ContractHelpers.rateLimited(options.operation, options.rateLimit) : {},
+      options.rateLimit
+        ? ContractHelpers.rateLimited(options.operation, options.rateLimit)
+        : {},
       ContractHelpers.audited(options.operation),
       { layer: "action" }
     );
@@ -178,7 +196,9 @@ export const ExtendedContractTemplates = {
   }): ContractOptions {
     return ContractHelpers.combine(
       ContractHelpers.withBusinessRules(...options.rules),
-      options.retryAttempts ? ContractHelpers.withRetry(options.retryAttempts) : {},
+      options.retryAttempts
+        ? ContractHelpers.withRetry(options.retryAttempts)
+        : {},
       ContractHelpers.audited(options.auditAction),
       { layer: "business" }
     );
@@ -196,10 +216,17 @@ export const ExtendedContractTemplates = {
     return ContractHelpers.combine(
       ContractHelpers.authenticated("admin"),
       options.inputSchema ? ContractHelpers.validated(options.inputSchema) : {},
-      options.rateLimit ? ContractHelpers.rateLimited(`admin_${options.operation}`, options.rateLimit) : {},
-      options.retryAttempts ? ContractHelpers.withRetry(options.retryAttempts) : {},
+      options.rateLimit
+        ? ContractHelpers.rateLimited(
+            `admin_${options.operation}`,
+            options.rateLimit
+          )
+        : {},
+      options.retryAttempts
+        ? ContractHelpers.withRetry(options.retryAttempts)
+        : {},
       ContractHelpers.audited(`admin_${options.operation}`),
       { layer: "action" }
     );
-  }
+  },
 };

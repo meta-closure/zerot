@@ -1,5 +1,4 @@
 import { logger } from "~/utils/logger";
-import { ContractViolationError } from "~/core/errors";
 
 /**
  * Provides debugging utilities for contract execution.
@@ -70,11 +69,14 @@ export class ContractDebugger {
       (h) => h.status === "failure"
     ).length;
 
-    const layerStats = this.contractHistory.reduce((acc, h) => {
-      acc[h.layer] = acc[h.layer] || { success: 0, failure: 0 };
-      acc[h.layer][h.status]++;
-      return acc;
-    }, {} as Record<string, { success: number; failure: number }>);
+    const layerStats = this.contractHistory.reduce(
+      (acc, h) => {
+        acc[h.layer] = acc[h.layer] || { success: 0, failure: 0 };
+        acc[h.layer][h.status]++;
+        return acc;
+      },
+      {} as Record<string, { success: number; failure: number }>
+    );
 
     return JSON.stringify(
       {
