@@ -1,236 +1,72 @@
-# Zerot: Zero-Trust Contracts for TypeScript
+# Zerot: Design by Contract for TypeScript
 
 [![npm version](https://badge.fury.io/js/zerot.svg)](https://badge.fury.io/js/zerot)
 [![npm downloads](https://img.shields.io/npm/dm/zerot.svg)](https://www.npmjs.com/package/zerot)
 [![license](https://img.shields.io/npm/l/zerot.svg)](https://github.com/meta-closure/zerot/blob/main/LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 
-> **Stop trusting your code. Start proving it works.**
+> **🚀 A powerful TypeScript library that brings Design by Contract (DbC) principles to your applications with zero-trust architecture and AI-friendly development patterns.**
 
-Zerot brings **Design by Contract** to TypeScript with a simple decorator that automatically validates inputs, enforces permissions, and logs actions. Perfect for APIs, Next.js apps, and anywhere you need bulletproof code.
+Zerot enables you to define clear **pre-conditions**, **post-conditions**, and **invariants** for your methods, ensuring predictable behavior, enhanced security, and improved code reliability. Perfect for building robust backend APIs, Next.js applications, and enterprise-grade systems.
 
-## 🤔 The Problem
+## ✨ Features
 
-```typescript
-// Typical API endpoint - what could go wrong?
-async function updateUser(userId: string, data: any, req: Request) {
-  // ❌ No input validation
-  // ❌ No authentication check
-  // ❌ No ownership verification
-  // ❌ No audit logging
-  // ❌ No rate limiting
+### 🎯 Core Contract System
 
-  return await db.user.update({ where: { id: userId }, data });
-}
-```
+- **`@contract` Decorator**: Apply contracts to any TypeScript method with elegant syntax
+- **Pre-conditions (`requires`)**: Input validation, authentication, and business rules
+- **Post-conditions (`ensures`)**: Output validation, audit logging, and state verification
+- **Invariants**: Conditions that must hold throughout method execution
+- **Type Safety**: Full TypeScript support with generic type inference
 
-**Everything.** This code is vulnerable to:
+### 🛡️ Built-in Security Conditions
 
-- Invalid data crashes
-- Unauthorized access
-- Data breaches
-- No audit trail
-- DoS attacks
+- **`auth(role?)`**: Authentication and role-based access control
+- **`owns(resourceField)`**: Resource ownership verification
+- **`rateLimit(operation, limit)`**: Built-in rate limiting with configurable stores
+- **`auditLog(action)`**: Comprehensive audit trail logging
+- **`businessRule(description, rule)`**: Custom business logic validation
 
-## ✅ The Solution
+### 🔧 Advanced Features
 
-```typescript
-@contract({
-  requires: [
-    auth('user'),                    // Must be logged in
-    validates(UserUpdateSchema),     // Input must be valid
-    owns('userId'),                  // Must own the resource
-    rateLimit('updateUser', 10)      // Max 10 calls per minute
-  ],
-  ensures: [
-    auditLog('user_updated')         // Log the action
-  ]
-})
-async function updateUser(data: UserUpdate, context: AuthContext) {
-  // ✅ All validation handled automatically
-  // ✅ Only business logic here
-  return await db.user.update({ where: { id: data.userId }, data });
-}
-```
+- **Input/Output Validation**: Zod schema integration with automatic transformation
+- **Performance Monitoring**: Built-in metrics and execution time tracking
+- **Error Handling**: Intelligent error classification and recovery strategies
+- **Template System**: Pre-built contract templates for common patterns
+- **Framework Integration**: First-class support for Next.js, Express, and more
+- **Zero Configuration**: Sensible defaults with extensive customization options
 
-One decorator. Complete security. Zero trust.
+### 🌟 Developer Experience
 
-## 🚀 30-Second Install
+- **AI-Friendly**: Structured error messages and clear contract documentation
+- **Type-Safe**: Full TypeScript support with intelligent type inference
+- **Testing Support**: Built-in test utilities and contract verification
+- **Debug Mode**: Detailed execution tracing and performance insights
+- **Hot Reload**: Development-friendly with fast refresh support
+
+## 🚀 Quick Start
+
+### Installation
 
 ```bash
-npm install zerot zod
+npm install zerot
+# or
+yarn add zerot
+# or
+pnpm add zerot
 ```
 
-```typescript
-import { contract, auth, validates } from "zerot";
-
-// That's it. Start adding contracts to your functions.
-```
-
-## ⚡ Quick Examples
-
-### Basic Example
+### Basic Setup
 
 ```typescript
-import { contract, auth, validates } from "zerot";
-import { z } from "zod";
+import { configureZerot } from "zerot/config";
 
-const CreatePostSchema = z.object({
-  title: z.string().min(1).max(100),
-  content: z.string().min(10),
-});
-
-class BlogService {
-  @contract({
-    requires: [
-      auth("user"), // Must be logged in
-      validates(CreatePostSchema), // Must have valid title & content
-    ],
-  })
-  async createPost(input: { title: string; content: string }) {
-    // Input is guaranteed to be valid
-    // User is guaranteed to be authenticated
-    return await db.post.create({ data: input });
-  }
-}
-```
-
-### Next.js Server Action
-
-```typescript
-"use server";
-import { createServerAction } from 'zerot/integrations/server-actions';
-
-const blogService = new BlogService();
-
-// Automatically handles auth, validation, and errors
-export const createPost = createServerAction(blogService.createPost);
-
-// Use in your component
-export default function CreatePostForm() {
-  return (
-    <form action={createPost}>
-      <input name="title" required />
-      <textarea name="content" required />
-      <button type="submit">Create Post</button>
-    </form>
-  );
-}
-```
-
-## 🛡️ Built-in Security
-
-### Authentication & Authorization
-
-```typescript
-@contract({ requires: [auth()] })              // Any logged-in user
-@contract({ requires: [auth('admin')] })       // Admins only
-@contract({ requires: [auth('user')] })        // Specific role
-```
-
-### Input Validation
-
-```typescript
-const UserSchema = z.object({
-  email: z.string().email(),
-  age: z.number().min(18)
-});
-
-@contract({ requires: [validates(UserSchema)] })
-async createUser(data: UserInput) {
-  // data is guaranteed to match schema
-}
-```
-
-### Resource Ownership
-
-```typescript
-@contract({
-  requires: [
-    auth('user'),
-    owns('documentId')  // User must own this document
-  ]
-})
-async editDocument(data: { documentId: string, content: string }) {
-  // Only the document owner can edit
-}
-```
-
-### Rate Limiting
-
-```typescript
-@contract({ requires: [rateLimit('sendEmail', 5)] })  // 5 per minute
-async sendEmail(to: string, message: string) {
-  // Automatically rate limited
-}
-```
-
-### Audit Logging
-
-```typescript
-@contract({ ensures: [auditLog('sensitive_action')] })
-async deleteSensitiveData(id: string) {
-  // Action is automatically logged
-}
-```
-
-## 🎯 Real-World Example
-
-```typescript
-// E-commerce order processing with full security
-@contract({
-  requires: [
-    auth('user'),
-    validates(z.object({
-      items: z.array(z.object({
-        productId: z.string(),
-        quantity: z.number().positive()
-      })),
-      paymentMethod: z.string(),
-      shippingAddress: z.string()
-    })),
-    rateLimit('createOrder', 3),           // Prevent order spam
-    businessRule(
-      'Cart must not be empty',
-      (input) => input.items.length > 0
-    ),
-    businessRule(
-      'User must have valid payment method',
-      async (input, context) => {
-        return await hasValidPayment(context.user.id);
-      }
-    )
-  ],
-  ensures: [
-    auditLog('order_created'),             // Log for compliance
-    returns(z.object({                     // Validate response
-      orderId: z.string(),
-      status: z.enum(['pending', 'confirmed']),
-      total: z.number()
-    }))
-  ]
-})
-async createOrder(input: OrderInput, context: AuthContext) {
-  // All validation done - just business logic
-  const order = await processOrder(input, context.user.id);
-  await sendConfirmationEmail(context.user.email, order);
-  return order;
-}
-```
-
-## 🔧 5-Minute Setup
-
-### 1. Configure providers (one time)
-
-```typescript
-// lib/zerot-config.ts
-import { setSessionProvider, setResourceProvider } from "zerot";
-import { getServerSession } from "next-auth"; // or your auth
-
-export async function setupZerot() {
-  // Configure how to get the current user
-  setSessionProvider(async () => {
-    const session = await getServerSession();
+// Configure Zerot once at application startup
+await configureZerot({
+  sessionProvider: async () => {
+    // Return current user session from your auth system
+    const session = await getCurrentSession();
     return {
       user: session?.user
         ? {
@@ -238,96 +74,766 @@ export async function setupZerot() {
             roles: session.user.roles || ["user"],
           }
         : undefined,
-      session: session
+    };
+  },
+});
+```
+
+### Your First Contract
+
+```typescript
+import { contract, auth, validates, returns, auditLog } from "zerot";
+import { z } from "zod";
+
+const UserSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+  age: z.number().min(13),
+});
+
+const UserOutputSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string(),
+  createdAt: z.date(),
+});
+
+class UserService {
+  @contract({
+    requires: [
+      auth("user"), // Must be authenticated
+      validates(UserSchema), // Input validation
+    ],
+    ensures: [
+      returns(UserOutputSchema), // Output validation
+      auditLog("user_created"), // Audit logging
+    ],
+    layer: "business",
+  })
+  async createUser(input: z.infer<typeof UserSchema>) {
+    // Your business logic here
+    const user = await this.userRepository.create({
+      ...input,
+      id: generateId(),
+      createdAt: new Date(),
+    });
+
+    return user;
+  }
+}
+```
+
+## 📚 Core Concepts
+
+### Contracts Structure
+
+Every contract has three optional sections:
+
+```typescript
+@contract({
+  requires: [    // Pre-conditions (validated before method execution)
+    auth("user"),
+    validates(InputSchema),
+    businessRule("Custom validation", (input) => input.isValid),
+  ],
+  ensures: [     // Post-conditions (validated after method execution)
+    returns(OutputSchema),
+    auditLog("action_performed"),
+  ],
+  invariants: [  // Conditions that must hold before AND after
+    systemHealthCheck,
+  ],
+  layer: "business",     // Optional: application layer classification
+  retryAttempts: 3,      // Optional: retry failed operations
+})
+```
+
+### Condition Types
+
+#### Pre-conditions (`requires`)
+
+Validate inputs and context before method execution:
+
+- Authentication checks
+- Input validation
+- Business rule verification
+- Rate limiting
+- Resource access control
+
+#### Post-conditions (`ensures`)
+
+Validate outputs and side effects after method execution:
+
+- Output schema validation
+- Audit logging
+- State consistency checks
+- Notification sending
+
+#### Invariants
+
+Conditions that must be true both before and after method execution:
+
+- System health checks
+- Database consistency
+- Global state validation
+
+## 🔐 Built-in Conditions
+
+### Authentication & Authorization
+
+```typescript
+// Authentication
+auth(); // Any authenticated user
+auth("admin"); // Must have 'admin' role
+auth("user"); // Must have 'user' role
+
+// Resource ownership
+owns("documentId"); // User must own the document
+owns("projectId"); // User must own the project
+```
+
+### Input & Output Validation
+
+```typescript
+import { z } from "zod";
+
+// Input validation with Zod
+validates(UserSchema);
+
+// Input validation with transformation
+validates(UserSchema, (user) => ({
+  ...user,
+  fullName: `${user.firstName} ${user.lastName}`,
+}));
+
+// Output validation
+returns(UserOutputSchema);
+```
+
+### Rate Limiting
+
+```typescript
+// Rate limiting
+rateLimit("api_call", 100); // 100 requests per minute
+rateLimit("upload", 5, 60000); // 5 uploads per minute
+rateLimit("login", 3, 300000); // 3 login attempts per 5 minutes
+```
+
+### Business Rules
+
+```typescript
+// Simple business rules
+businessRule("Amount must be positive", (input) => input.amount > 0);
+
+// Async business rules
+businessRule("User must have sufficient balance", async (input, context) => {
+  const balance = await getBalance(context.user.id);
+  return balance >= input.amount;
+});
+```
+
+### Audit Logging
+
+```typescript
+// Simple audit log
+auditLog("user_created");
+
+// Detailed audit log
+auditLog("sensitive_data_accessed", {
+  sensitivity: "high",
+  dataType: "personal_info",
+});
+```
+
+## 🎨 Contract Templates
+
+Zerot provides pre-built templates for common patterns:
+
+### CRUD Operations
+
+```typescript
+import { ContractTemplates } from "zerot/templates";
+
+class UserService {
+  // Basic CRUD with authentication
+  @contract(
+    ContractTemplates.crud({
+      role: "user",
+      operation: "create",
+      inputSchema: UserSchema,
+      outputSchema: UserOutputSchema,
+    })
+  )
+  async createUser(input: UserInput) {
+    /* ... */
+  }
+
+  // Secured CRUD with ownership check
+  @contract(
+    ContractTemplates.secureCRUD({
+      role: "user",
+      operation: "update",
+      resourceField: "userId",
+      inputSchema: UserUpdateSchema,
+      outputSchema: UserOutputSchema,
+    })
+  )
+  async updateUser(input: UserUpdateInput) {
+    /* ... */
+  }
+}
+```
+
+### API Endpoints
+
+```typescript
+class APIController {
+  // Public API endpoint
+  @contract(
+    ContractTemplates.publicAPI("get_users", {
+      rateLimit: 100,
+      outputSchema: UsersListSchema,
+    })
+  )
+  async getUsers() {
+    /* ... */
+  }
+
+  // Admin-only endpoint
+  @contract(
+    ContractTemplates.adminOnly("user_management", {
+      inputSchema: AdminActionSchema,
+      auditLevel: "high",
+    })
+  )
+  async adminAction(input: AdminActionInput) {
+    /* ... */
+  }
+}
+```
+
+### Extended Templates
+
+```typescript
+import { ExtendedContractTemplates } from "zerot/templates";
+
+class ServiceLayer {
+  // Database operations with retry
+  @contract(
+    ExtendedContractTemplates.databaseOperation({
+      operation: "user_query",
+      retryAttempts: 3,
+      timeoutMs: 5000,
+    })
+  )
+  async searchUsers(query: string) {
+    /* ... */
+  }
+
+  // Secure operations with full validation
+  @contract(
+    ExtendedContractTemplates.secureCRUD({
+      role: "user",
+      resourceField: "userId",
+      inputSchema: UserUpdateSchema,
+      outputSchema: UserOutputSchema,
+      operation: "update_profile",
+      rateLimit: 10,
+    })
+  )
+  async updateProfile(input: UserUpdateInput) {
+    /* ... */
+  }
+}
+```
+
+### Functional Composition
+
+```typescript
+import { ContractHelpers } from "zerot/templates";
+
+// Compose contracts functionally
+@contract(
+  ContractHelpers.combine(
+    ContractHelpers.authenticated("user"),
+    ContractHelpers.validated(InputSchema, OutputSchema),
+    ContractHelpers.rateLimited("operation", 10),
+    ContractHelpers.audited("user_action"),
+    ContractHelpers.withRetry(3, 1000),
+    { layer: "business" }
+  )
+)
+async complexOperation(input: InputType) { /* ... */ }
+```
+
+## 🔧 Configuration
+
+Zerot requires configuration before use. Call `configureZerot()` once during application startup.
+
+### Quick Start Configuration
+
+```typescript
+import { configureZerot } from "zerot/config";
+
+// Minimal setup - just provide session information
+await configureZerot({
+  sessionProvider: async () => {
+    const session = await getCurrentSession();
+    return {
+      user: session?.user
         ? {
-            id: session.sessionId,
-            expiresAt: new Date(session.expires),
+            id: session.user.id,
+            roles: session.user.roles || ["user"],
           }
         : undefined,
     };
-  });
+  },
+});
+```
 
-  // Configure how to check resource ownership
-  setResourceProvider(async (resourceId) => {
-    const resource = await db.findResourceById(resourceId);
+### Environment Presets
+
+Use predefined configurations optimized for different environments:
+
+```typescript
+import { configureZerot, ZerotPresets } from "zerot/config";
+
+// Development - debugging enabled, verbose logging
+await configureZerot({
+  ...ZerotPresets.development(),
+  sessionProvider: async () => await getCurrentSession(),
+});
+
+// Production - optimized for performance and security
+await configureZerot({
+  ...ZerotPresets.production(),
+  sessionProvider: async () => await getCurrentSession(),
+  resourceProvider: async (id) => await getResourceFromDB(id),
+});
+
+// Testing - consistent behavior, minimal logging
+await configureZerot({
+  ...ZerotPresets.testing(),
+  sessionProvider: () => ({
+    user: { id: "test-user", roles: ["user"] },
+  }),
+});
+
+// High Security - strict validation, enhanced audit logging
+await configureZerot({
+  ...ZerotPresets.secure(),
+  sessionProvider: async () => await getCurrentSession(),
+  resourceProvider: async (id) => await getResourceFromDB(id),
+});
+```
+
+### Full Configuration Example
+
+```typescript
+await configureZerot({
+  // ===== CORE PROVIDERS (Required) =====
+
+  sessionProvider: async () => {
+    const session = await getSession();
+    return {
+      user: session?.user
+        ? {
+            id: session.user.id,
+            roles: session.user.roles || ["user"],
+            email: session.user.email,
+            departmentId: session.user.departmentId,
+            permissions: session.user.permissions,
+          }
+        : undefined,
+
+      session: session
+        ? {
+            id: session.id,
+            expiresAt: new Date(session.expires),
+            ipAddress: session.ipAddress,
+            userAgent: session.userAgent,
+          }
+        : undefined,
+    };
+  },
+
+  resourceProvider: async (resourceId: string) => {
+    const resource = await db.resource.findUnique({
+      where: { id: resourceId },
+      select: {
+        id: true,
+        userId: true,
+        teamId: true,
+        organizationId: true,
+        isPublic: true,
+      },
+    });
+
     return resource
       ? {
           id: resource.id,
           userId: resource.userId,
+          teamId: resource.teamId,
+          organizationId: resource.organizationId,
+          isPublic: resource.isPublic,
         }
       : null;
+  },
+
+  // ===== DEVELOPMENT & DEBUGGING =====
+
+  enableDebugMode: process.env.NODE_ENV === "development",
+  enablePerformanceMonitoring: true,
+  enableExecutionTracing: true,
+  logLevel: "info", // 'debug' | 'info' | 'warn' | 'error'
+
+  // ===== SECURITY SETTINGS =====
+
+  enableAuditLogging: true,
+  enableInputSanitization: true,
+  enableStrictValidation: true,
+
+  sensitiveFields: [
+    "password",
+    "token",
+    "secret",
+    "apiKey",
+    "privateKey",
+    "session",
+    "authorization",
+    "credential",
+    "key",
+    "pin",
+  ],
+
+  // ===== PERFORMANCE OPTIMIZATION =====
+
+  enableConditionCaching: true,
+  conditionCacheTtl: 10000, // 10 seconds
+  maxConditionExecutionTime: 5000, // 5 seconds timeout
+
+  // ===== RATE LIMITING =====
+
+  defaultRateLimitWindow: 60000, // 1 minute
+  rateLimitMaxEntries: 50000,
+
+  // Optional: Custom rate limit store (Redis, database, etc.)
+  customRateLimitStore: new RedisRateLimitStore({
+    host: process.env.REDIS_HOST,
+    port: parseInt(process.env.REDIS_PORT || "6379"),
+  }),
+
+  // ===== RETRY & ERROR HANDLING =====
+
+  defaultRetryAttempts: 3,
+  defaultRetryDelayMs: 1000, // 1 second base delay
+  defaultRetryOnCategories: [
+    ErrorCategory.NETWORK,
+    ErrorCategory.SYSTEM,
+    ErrorCategory.RATE_LIMIT,
+  ],
+
+  // ===== CUSTOM LOGGERS =====
+
+  customLogger: {
+    debug: (message, meta) => logger.debug(message, meta),
+    info: (message, meta) => logger.info(message, meta),
+    warn: (message, meta) => logger.warn(message, meta),
+    error: (message, meta) => logger.error(message, meta),
+  },
+
+  customAuditLogger: new DatabaseAuditLogger({
+    connectionString: process.env.AUDIT_DB_URL,
+    tableName: "audit_logs",
+    batchSize: 100,
+    flushInterval: 5000,
+  }),
+});
+```
+
+### Configuration Options Reference
+
+| Category                      | Option                                   | Type                         | Default                           | Description                          |
+| ----------------------------- | ---------------------------------------- | ---------------------------- | --------------------------------- | ------------------------------------ |
+| **Core Providers**            |
+| `sessionProvider`             | `SessionProvider`                        | **Required**                 | -                                 | Function to get current user session |
+| `resourceProvider`            | `ResourceProvider`                       | Optional                     | `async () => null`                | Function to get resource by ID       |
+| **Development**               |
+| `enableDebugMode`             | `boolean`                                | `NODE_ENV === 'development'` | Enable debug logging              |
+| `enablePerformanceMonitoring` | `boolean`                                | `false`                      | Track performance metrics         |
+| `enableExecutionTracing`      | `boolean`                                | `false`                      | Enable contract execution tracing |
+| `logLevel`                    | `'debug' \| 'info' \| 'warn' \| 'error'` | `'info'`                     | Minimum log level                 |
+| **Security**                  |
+| `enableAuditLogging`          | `boolean`                                | `true`                       | Enable audit trail logging        |
+| `enableInputSanitization`     | `boolean`                                | `true`                       | Sanitize sensitive fields         |
+| `enableStrictValidation`      | `boolean`                                | `true`                       | Enable strict validation          |
+| `sensitiveFields`             | `string[]`                               | `['password', 'token', ...]` | Fields to sanitize                |
+| **Performance**               |
+| `enableConditionCaching`      | `boolean`                                | `false`                      | Cache condition results           |
+| `conditionCacheTtl`           | `number`                                 | `5000`                       | Cache TTL (ms)                    |
+| `maxConditionExecutionTime`   | `number`                                 | `5000`                       | Max execution time (ms)           |
+| **Rate Limiting**             |
+| `defaultRateLimitWindow`      | `number`                                 | `60000`                      | Default window (ms)               |
+| `rateLimitMaxEntries`         | `number`                                 | `10000`                      | Max entries in store              |
+| `customRateLimitStore`        | `RateLimitStore`                         | `MemoryRateLimitStore`       | Custom store backend              |
+| **Retry & Errors**            |
+| `defaultRetryAttempts`        | `number`                                 | `0`                          | Default retry attempts            |
+| `defaultRetryDelayMs`         | `number`                                 | `100`                        | Delay between retries (ms)        |
+| `defaultRetryOnCategories`    | `ErrorCategory[]`                        | `[NETWORK, SYSTEM]`          | Error types to retry              |
+
+### Runtime Configuration Access
+
+```typescript
+import { zerotConfig, getZerotConfig, isZerotConfigured } from "zerot/config";
+
+// Check if configured
+if (!isZerotConfigured()) {
+  throw new Error("Zerot must be configured before use");
+}
+
+// Get specific configuration
+const debugMode = zerotConfig.get("enableDebugMode");
+
+// Get all configuration
+const config = getZerotConfig();
+
+// Update at runtime (use sparingly)
+zerotConfig.set("enableDebugMode", true);
+```
+
+### Custom Providers
+
+#### Session Provider Implementation
+
+```typescript
+const sessionProvider: SessionProvider = async () => {
+  try {
+    const session = await getSessionFromJWT(request.headers.authorization);
+
+    if (!session) {
+      return { user: undefined, session: undefined };
+    }
+
+    const userData = await getUserById(session.userId);
+
+    return {
+      user: {
+        id: userData.id,
+        email: userData.email,
+        roles: userData.roles || ["user"],
+        departmentId: userData.departmentId,
+        organizationId: userData.organizationId,
+        permissions: userData.permissions || [],
+        isEmailVerified: userData.isEmailVerified,
+        isPremium: userData.subscription?.isPremium || false,
+      },
+
+      session: {
+        id: session.id,
+        expiresAt: new Date(session.expiresAt),
+        ipAddress: session.ipAddress,
+        userAgent: session.userAgent,
+        createdAt: new Date(session.createdAt),
+      },
+    };
+  } catch (error) {
+    console.error("Session provider error:", error);
+    return { user: undefined, session: undefined };
+  }
+};
+```
+
+#### Resource Provider Implementation
+
+```typescript
+const resourceProvider: ResourceProvider = async (resourceId: string) => {
+  try {
+    // Handle different resource ID formats
+    const [resourceType, id] = resourceId.includes(":")
+      ? resourceId.split(":")
+      : ["default", resourceId];
+
+    let resource;
+
+    switch (resourceType) {
+      case "user":
+        resource = await db.user.findUnique({
+          where: { id },
+          select: { id: true, organizationId: true, isActive: true },
+        });
+        break;
+
+      case "project":
+        resource = await db.project.findUnique({
+          where: { id },
+          select: {
+            id: true,
+            userId: true,
+            teamId: true,
+            organizationId: true,
+            visibility: true,
+          },
+        });
+        break;
+
+      default:
+        resource = await db.resource.findUnique({
+          where: { id },
+          select: { id: true, userId: true, teamId: true },
+        });
+    }
+
+    return resource || null;
+  } catch (error) {
+    console.error("Resource provider error:", error);
+    return null;
+  }
+};
+```
+
+#### Custom Rate Limit Store
+
+```typescript
+import Redis from "ioredis";
+
+class RedisRateLimitStore implements RateLimitStore {
+  private redis = new Redis(process.env.REDIS_URL);
+
+  async get(key: string) {
+    const data = await this.redis.get(key);
+    return data ? JSON.parse(data) : null;
+  }
+
+  async set(key: string, value: { count: number; lastReset: number }) {
+    await this.redis.setex(key, 3600, JSON.stringify(value));
+  }
+
+  async increment(key: string): Promise<number> {
+    return await this.redis.incr(key);
+  }
+
+  async reset(key: string) {
+    await this.redis.del(key);
+  }
+
+  async clear() {
+    await this.redis.flushdb();
+  }
+}
+```
+
+## 🌐 Framework Integration
+
+### Next.js Integration
+
+#### App Router Setup
+
+```typescript
+// lib/zerot-config.ts
+import { configureZerot } from "zerot/config";
+import { getServerSession } from "next-auth";
+
+export async function initializeZerot() {
+  await configureZerot({
+    sessionProvider: async () => {
+      const session = await getServerSession();
+      return {
+        user: session?.user
+          ? {
+              id: session.user.id,
+              roles: session.user.roles || ["user"],
+            }
+          : undefined,
+      };
+    },
+    resourceProvider: async (id) => {
+      return await getResourceFromDB(id);
+    },
   });
 }
-```
 
-### 2. Initialize in your app
+// middleware.ts
+import { withContractMiddleware } from "zerot/integrations/nextjs";
+import { initializeZerot } from "./lib/zerot-config";
 
-```typescript
-// app/layout.tsx (Next.js) or main.ts
-import { setupZerot } from "./lib/zerot-config";
+await initializeZerot();
 
-await setupZerot();
-```
-
-### 3. Start using contracts
-
-```typescript
-// That's it! Add @contract to any function
-@contract({
-  requires: [auth('user'), validates(MySchema)],
-  ensures: [auditLog('action_performed')]
-})
-async mySecureFunction(input: MyInput) {
-  // Your code here
+async function middleware(request: NextRequest) {
+  return NextResponse.next();
 }
-```
 
-## 🎨 Framework Integration
+export default withContractMiddleware(middleware);
 
-### Next.js Server Actions
+// app/actions.ts
+("use server");
 
-```typescript
-"use server";
 import { createServerAction } from "zerot/integrations/server-actions";
 
 class UserActions {
   @contract({
     requires: [auth("user"), validates(UserSchema)],
-    ensures: [auditLog("profile_updated")],
+    ensures: [returns(UserOutputSchema), auditLog("user_created")],
   })
-  async updateProfile(input: UserInput) {
-    return await userService.update(input);
-  }
-}
-
-// Automatically handles auth/validation/errors
-export const updateProfile = createServerAction(
-  new UserActions().updateProfile
-);
-```
-
-### Express.js
-
-```typescript
-import express from "express";
-
-const app = express();
-
-class ApiController {
-  @contract({
-    requires: [auth("user"), validates(CreateUserSchema)],
-    ensures: [auditLog("user_created")],
-  })
-  async createUser(input: CreateUserInput) {
+  async createUser(input: UserInput) {
     return await userService.create(input);
   }
 }
 
-const api = new ApiController();
+export const createUser = createServerAction(new UserActions().createUser);
+```
+
+#### API Routes
+
+```typescript
+// app/api/users/route.ts
+import { contract, auth, validates, returns } from "zerot";
+
+class UserAPI {
+  @contract({
+    requires: [auth("admin"), validates(UserSchema)],
+    ensures: [returns(UserOutputSchema)],
+    layer: "presentation",
+  })
+  async POST(request: Request) {
+    const data = await request.json();
+    return await userService.createUser(data);
+  }
+}
+
+const userAPI = new UserAPI();
+export { userAPI as POST };
+```
+
+### Express.js Integration
+
+```typescript
+import express from "express";
+import { configureZerot } from "zerot/config";
+
+// Configure Zerot
+await configureZerot({
+  sessionProvider: async () => {
+    return getCurrentUser();
+  },
+});
+
+const app = express();
+
+class UserController {
+  @contract({
+    requires: [auth("user"), validates(UserSchema)],
+    ensures: [auditLog("user_created")],
+  })
+  async createUser(input: UserInput) {
+    return await userService.create(input);
+  }
+}
+
+const userController = new UserController();
 
 app.post("/users", async (req, res) => {
   try {
-    const result = await api.createUser(req.body);
+    const result = await userController.createUser(req.body);
     res.json(result);
   } catch (error) {
     if (error instanceof ContractViolationError) {
@@ -339,75 +845,44 @@ app.post("/users", async (req, res) => {
 });
 ```
 
-### tRPC
+### Fastify Integration
 
 ```typescript
-import { contract } from "zerot";
+import Fastify from "fastify";
+import { configureZerot } from "zerot/config";
 
-const userRouter = router({
-  create: procedure
-    .use(async (opts) => {
-      // Apply contract as middleware
-      const contractedFn = applyContract(
-        { requires: [auth("user"), validates(UserSchema)] },
-        async (input: UserInput) => {
-          return await userService.create(input);
-        }
-      );
+const fastify = Fastify();
 
-      return contractedFn(opts.input);
-    })
-    .mutation(({ input }) => input),
+await configureZerot({
+  sessionProvider: async () => {
+    return getCurrentUser();
+  },
 });
-```
 
-## 🧪 Template System
-
-Pre-built contracts for common patterns:
-
-```typescript
-import { ContractTemplates } from 'zerot/templates';
-
-// CRUD operations
-@contract(ContractTemplates.userCRUD('admin'))
-async updateUser(input: UserUpdate) { /* ... */ }
-
-// Admin-only actions
-@contract(ContractTemplates.adminOnly('delete_user'))
-async deleteUser(userId: string) { /* ... */ }
-
-// Public API endpoints
-@contract(ContractTemplates.publicAPI('search'))
-async searchUsers(query: string) { /* ... */ }
-
-// Auto-generated contracts
-@contract(smartContract({
-  operation: 'create',
-  resource: 'post',
-  visibility: 'private',     // 'public', 'private', or 'admin'
-  rateLimit: 10
-}))
-async createPost(input: PostInput) { /* ... */ }
-```
-
-## 🚨 Error Handling
-
-Contracts throw `ContractViolationError` with helpful details:
-
-```typescript
-try {
-  await userService.updateProfile(invalidData);
-} catch (error) {
-  if (error instanceof ContractViolationError) {
-    console.log(error.layer); // 'business', 'action', etc.
-    console.log(error.contractName); // 'UserService.updateProfile'
-    console.log(error.message); // 'Input validation failed: email is invalid'
-
-    // Get appropriate response for your framework
-    const response = error.getAppropriateResponse();
-    // Returns: { success: false, error: "Input validation failed" }
+class UserRoutes {
+  @contract({
+    requires: [auth("user"), validates(UserSchema)],
+    ensures: [returns(UserOutputSchema)],
+  })
+  async createUser(input: UserInput) {
+    return await userService.create(input);
   }
 }
+
+const userRoutes = new UserRoutes();
+
+fastify.post("/users", async (request, reply) => {
+  try {
+    const result = await userRoutes.createUser(request.body);
+    return result;
+  } catch (error) {
+    if (error instanceof ContractViolationError) {
+      reply.status(400).send(error.getAppropriateResponse());
+    } else {
+      reply.status(500).send({ error: "Internal server error" });
+    }
+  }
+});
 ```
 
 ## 📊 Monitoring & Debugging
@@ -415,174 +890,5 @@ try {
 ### Performance Monitoring
 
 ```typescript
-import { ContractPerformanceMonitor } from "zerot/utils";
-
-// Get performance report
-const report = ContractPerformanceMonitor.getPerformanceReport();
-console.log(report);
-/*
-[
-  {
-    contract: "UserService.createUser",
-    executions: 150,
-    avgTimeMs: 45.2,
-    failureRate: "2.0%"
-  }
-]
-*/
+import { ContractPerformanceMonitor } from "zerot/utils
 ```
-
-### Debug Mode
-
-```typescript
-import { ContractDebugger } from "zerot/utils";
-
-// In development, see all contract executions
-const report = ContractDebugger.getContractReport();
-console.log(report);
-/*
-{
-  total: 50,
-  success: 47,
-  failure: 3,
-  successRate: "94.0%",
-  layerStats: {
-    action: { success: 20, failure: 1 },
-    business: { success: 27, failure: 2 }
-  }
-}
-*/
-```
-
-## 🔄 Migration Guide
-
-### From Manual Validation
-
-```typescript
-// Before: Manual everything
-async createUser(req: Request, res: Response) {
-  // Manual auth check
-  if (!req.user || !req.user.roles.includes('admin')) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  // Manual validation
-  if (!req.body.email || !isEmail(req.body.email)) {
-    return res.status(400).json({ error: 'Invalid email' });
-  }
-
-  // Manual audit log
-  await auditLogger.log('user_created', req.user.id);
-
-  // Finally, business logic
-  const user = await userService.create(req.body);
-  res.json(user);
-}
-
-// After: Contract handles everything
-@contract({
-  requires: [
-    auth('admin'),
-    validates(UserSchema)
-  ],
-  ensures: [
-    auditLog('user_created')
-  ]
-})
-async createUser(input: UserInput) {
-  // Only business logic needed
-  return await userService.create(input);
-}
-```
-
-## 📚 Examples Repository
-
-Check out `/examples` for complete working applications:
-
-- **`examples/nextjs-todo-app/`** - Next.js 14 with Server Actions
-- **`examples/express-api/`** - Express.js REST API
-- **`examples/trpc-app/`** - tRPC with contracts
-
-```bash
-# Try the examples
-git clone https://github.com/meta-closure/zerot.git
-cd zerot/examples/nextjs-todo-app
-npm install && npm run dev
-```
-
-## ❓ FAQ
-
-### "How is this different from middleware?"
-
-Middleware runs for every request. Contracts run per-function and compose together:
-
-```typescript
-// Multiple contracts on one function
-@contract(ContractTemplates.userCRUD('user'))
-@contract({ requires: [rateLimit('special', 5)] })
-@contract({ ensures: [customAuditLog('special_action')] })
-async specialAction(input: SpecialInput) {
-  // All contracts applied automatically
-}
-```
-
-### "Does this hurt performance?"
-
-Contracts are lightweight and don't significantly impact performance:
-
-```typescript
-// Performance monitoring built-in
-import { ContractPerformanceMonitor } from "zerot/utils";
-
-const report = ContractPerformanceMonitor.getPerformanceReport();
-// See actual execution times and optimize accordingly
-```
-
-### "Can I use this with existing auth systems?"
-
-Yes! Zerot adapts to your auth:
-
-```typescript
-await configureZerot({
-  sessionProvider: async () => {
-    // Use your existing auth system
-    const user = await getCurrentUser(); // Your function
-    return { user };
-  },
-});
-```
-
-### "What about testing?"
-
-Contracts make testing easier:
-
-```typescript
-// Test contracts separately from business logic
-it("should enforce user authentication", async () => {
-  await expect(
-    userService.createUser(validInput, noAuthContext)
-  ).rejects.toThrow("User must be logged in");
-});
-
-// Test business logic with valid contracts
-it("should create user successfully", async () => {
-  const result = await userService.createUser(validInput, authContext);
-  expect(result.id).toBeDefined();
-});
-```
-
-## 🤝 Contributing
-
-We love contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
-
-```bash
-git clone https://github.com/meta-closure/zerot.git
-cd zerot
-npm install
-npm test
-npm run build
-```
-
-## 📜 License
-
-MIT License - see [LICENSE](LICENSE) file.
