@@ -890,5 +890,968 @@ fastify.post("/users", async (request, reply) => {
 ### Performance Monitoring
 
 ```typescript
-import { ContractPerformanceMonitor } from "zerot/utils
+import { ContractPerformanceMonitor } from "zerot/utils";
+
+// Enable performance monitoring in config
+await configureZerot({
+  enablePerformanceMonitoring: true,
+});
+
+// Manual performance measurement
+const result = await ContractPerformanceMonitor.measureContract(
+  "UserService.createUser",
+  () => userService.createUser(input)
+);
+
+// Get performance report
+const report = ContractPerformanceMonitor.getPerformanceReport();
+console.log("Average execution time:", report.averageExecutionTime);
+console.log("Slowest operations:", report.slowestOperations);
 ```
+
+### Debug Mode
+
+```typescript
+import { ContractDebugger } from "zerot/utils";
+
+// Enable debug mode
+await configureZerot({
+  enableDebugMode: true,
+  enableExecutionTracing: true,
+});
+
+// Get debug report
+const debugReport = ContractDebugger.getContractReport();
+console.log("Contract executions:", debugReport.executions);
+console.log("Failed conditions:", debugReport.failures);
+console.log("Performance stats:", debugReport.performance);
+```
+
+### Custom Metrics
+
+```typescript
+import { Metrics } from "zerot/utils";
+
+// Track custom metrics
+Metrics.increment("api_calls_total", { endpoint: "/users" });
+Metrics.gauge("active_users", 150);
+Metrics.record("database_query_time", 250, { query: "findUser" });
+
+// Generate metrics report
+const metricsReport = Metrics.getReport();
+console.log("Total API calls:", metricsReport.counters.api_calls_total);
+console.log("Active users:", metricsReport.gauges.active_users);
+```
+
+### Error Analysis
+
+```typescript
+import { ErrorAnalyzer } from "zerot/utils";
+
+// Analyze error patterns
+const errorReport = ErrorAnalyzer.getErrorReport();
+console.log("Most common errors:", errorReport.commonErrors);
+console.log("Error trends:", errorReport.trends);
+console.log("Failed operations:", errorReport.failedOperations);
+
+// Get recommendations
+const recommendations = ErrorAnalyzer.getRecommendations();
+console.log("Suggestions:", recommendations);
+```
+
+## 🧪 Testing
+
+### Unit Testing Contracts
+
+```typescript
+import { describe, it, expect, beforeEach } from "vitest";
+import { ContractViolationError, configureZerot, ZerotPresets } from "zerot";
+
+describe("UserService", () => {
+  let userService: UserService;
+
+  beforeEach(async () => {
+    // Use testing preset
+    await configureZerot({
+      ...ZerotPresets.testing(),
+      sessionProvider: () => ({
+        user: { id: "test-user", roles: ["user"] },
+      }),
+    });
+
+    userService = new UserService();
+  });
+
+  it("should validate input correctly", async () => {
+    const invalidInput = { name: "", email: "invalid" };
+
+    await expect(userService.createUser(invalidInput)).rejects.toThrow(
+      ContractViolationError
+    );
+  });
+
+  it("should enforce authentication", async () => {
+    // Override session provider for this test
+    await configureZerot({
+      ...ZerotPresets.testing(),
+      sessionProvider: () => ({ user: undefined }),
+    });
+
+    await expect(userService.createUser(validInput)).rejects.toThrow(
+      "User must be logged in"
+    );
+  });
+
+  it("should create user successfully with valid input", async () => {
+    const validInput = {
+      name: "John Doe",
+      email: "john@example.com",
+      age: 25,
+    };
+
+    const result = await userService.createUser(validInput);
+
+    expect(result).toMatchObject({
+      id: expect.any(String),
+      name: "John Doe",
+      email: "john@example.com",
+    });
+  });
+});
+```
+
+### Contract Testing Utilities
+
+```typescript
+import { ContractTester } from "zerot/testing";
+
+describe("Contract behavior", () => {
+  it("should test contract conditions independently", async () => {
+    const tester = new ContractTester(UserService.prototype.createUser);
+
+    // Test individual conditions
+    await expect(tester.testRequires(invalidInput)).rejects.toThrow();
+    await expect(tester.testEnsures(validOutput)).resolves.toBe(true);
+
+    // Test full contract
+    const result = await tester.testFullContract(validInput);
+    expect(result.success).toBe(true);
+  });
+});
+```
+
+### Mock Providers
+
+```typescript
+import { MockProviders } from "zerot/testing";
+
+beforeEach(async () => {
+  await configureZerot({
+    sessionProvider: MockProviders.createMockSessionProvider({
+      user: { id: "test-user", roles: ["admin"] },
+    }),
+    resourceProvider: MockProviders.createMockResourceProvider({
+      "resource-1": { id: "resource-1", userId: "test-user" },
+    }),
+  });
+});
+```
+
+## 🎯 Best Practices
+
+### Contract Design
+
+```typescript
+// ✅ Good: Clear, specific conditions
+@contract({
+  requires: [
+    auth('user'),
+    validates(z.object({
+      amount: z.number().positive(),
+      currency: z.enum(['USD', 'EUR', 'JPY'])
+    })),
+    businessRule(
+      'User must have sufficient balance',
+      async (input, context) => {
+        const balance = await getBalance(context.user.id);
+        return balance >= input.amount;
+      }
+    )
+  ],
+  ensures: [
+    returns(TransactionSchema),
+    auditLog('transaction_created')
+  ],
+  layer: 'business'
+})
+async createTransaction(input: TransactionInput) { /* ... */ }
+
+// ❌ Avoid: Generic, unclear conditions
+@contract({
+  requires: [(input) => input.isValid()],
+  ensures: [(output) => output !== null]
+})
+async doSomething(input: any) { /* ... */ }
+```
+
+### Error Handling
+
+```typescript
+import { ContractViolationError, ErrorCategory } from "zerot";
+
+try {
+  await userService.createUser(input);
+} catch (error) {
+  if (error instanceof ContractViolationError) {
+    // Handle contract violations specifically
+    const response = error.getAppropriateResponse();
+
+    switch (error.layer) {
+      case "presentation":
+        return redirect(response.redirect || "/login");
+      case "business":
+        return { success: false, error: response.error };
+      default:
+        return { success: false, error: "Operation failed" };
+    }
+  }
+
+  // Handle other errors
+  throw error;
+}
+```
+
+### Performance Optimization
+
+```typescript
+// Enable caching for expensive conditions
+@contract({
+  requires: [
+    auth('user'),
+    businessRule(
+      'User has premium subscription',
+      async (input, context) => {
+        const subscription = await getSubscription(context.user.id);
+        return subscription.isPremium;
+      },
+      { cacheTtl: 300000 } // Cache for 5 minutes
+    )
+  ]
+})
+async premiumFeature(input: any) { /* ... */ }
+
+// Use rate limiting strategically
+@contract({
+  requires: [
+    rateLimit('expensive_operation', 5, 3600000), // 5 per hour
+  ]
+})
+async expensiveOperation() { /* ... */ }
+```
+
+### Layer Organization
+
+```typescript
+// Presentation Layer (API endpoints, UI handlers)
+@contract({
+  requires: [validates(RequestSchema), rateLimit('api_call', 100)],
+  ensures: [returns(ResponseSchema)],
+  layer: 'presentation'
+})
+async handleAPIRequest(request: Request) { /* ... */ }
+
+// Business Layer (core logic, domain rules)
+@contract({
+  requires: [auth('user'), businessRule('Business rule', rule)],
+  ensures: [auditLog('business_action')],
+  layer: 'business'
+})
+async executeBusinessLogic(input: BusinessInput) { /* ... */ }
+
+// Data Layer (database operations, external APIs)
+@contract({
+  requires: [validates(DataSchema)],
+  ensures: [returns(DataOutputSchema)],
+  layer: 'data',
+  retryAttempts: 3
+})
+async saveToDatabase(data: DataInput) { /* ... */ }
+```
+
+### Security Guidelines
+
+```typescript
+// Always validate sensitive operations
+@contract({
+  requires: [
+    auth('admin'),
+    validates(AdminActionSchema),
+    businessRule('Action requires approval',
+      async (input, context) => {
+        return await hasApproval(input.actionId, context.user.id);
+      }
+    )
+  ],
+  ensures: [
+    auditLog('admin_action', { sensitivity: 'high' }),
+    returns(ActionResultSchema)
+  ]
+})
+async performAdminAction(input: AdminActionInput) { /* ... */ }
+
+// Use resource ownership checks
+@contract({
+  requires: [
+    auth('user'),
+    owns('documentId'),
+    validates(DocumentUpdateSchema)
+  ],
+  ensures: [auditLog('document_updated')]
+})
+async updateDocument(input: DocumentUpdateInput) { /* ... */ }
+```
+
+## 🔍 Advanced Usage
+
+### Custom Conditions
+
+Create your own reusable conditions:
+
+```typescript
+import { createCondition } from "zerot/conditions";
+
+// Custom authentication condition
+export const requiresPermission = (permission: string) =>
+  createCondition(
+    `User must have ${permission} permission`,
+    async (input: any, context: ExecutionContext) => {
+      const user = context.user;
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
+      const hasPermission = user.permissions?.includes(permission);
+      if (!hasPermission) {
+        throw new Error(`Missing permission: ${permission}`);
+      }
+
+      return true;
+    }
+  );
+
+// Custom business rule condition
+export const withinBusinessHours = () =>
+  createCondition(
+    "Operation must be within business hours",
+    async () => {
+      const now = new Date();
+      const hour = now.getHours();
+      return hour >= 9 && hour <= 17;
+    }
+  );
+
+// Usage
+@contract({
+  requires: [
+    requiresPermission('user:write'),
+    withinBusinessHours()
+  ]
+})
+async createUser(input: UserInput) { /* ... */ }
+```
+
+### Dynamic Contract Configuration
+
+```typescript
+import { createDynamicContract } from "zerot/dynamic";
+
+class UserService {
+  // Contract configuration based on input
+  @createDynamicContract((input: any) => ({
+    requires: [
+      auth("user"),
+      ...(input.isAdmin ? [auth("admin")] : []),
+      validates(input.isAdmin ? AdminUserSchema : UserSchema),
+    ],
+    ensures: [auditLog(input.isAdmin ? "admin_user_created" : "user_created")],
+  }))
+  async createUser(input: UserInput) {
+    /* ... */
+  }
+}
+```
+
+### Conditional Contract Application
+
+```typescript
+import { conditionalContract } from "zerot/conditional";
+
+class PaymentService {
+  // Different contracts based on environment
+  @conditionalContract({
+    development: {
+      requires: [validates(PaymentSchema)],
+      ensures: [returns(PaymentResultSchema)],
+    },
+    production: {
+      requires: [
+        auth("user"),
+        validates(PaymentSchema),
+        businessRule("Payment amount validation", validateAmount),
+        rateLimit("payment", 10, 3600000),
+      ],
+      ensures: [
+        returns(PaymentResultSchema),
+        auditLog("payment_processed"),
+        businessRule("Payment recorded", verifyPaymentRecorded),
+      ],
+    },
+  })
+  async processPayment(input: PaymentInput) {
+    /* ... */
+  }
+}
+```
+
+### Contract Composition
+
+```typescript
+import { composeContracts } from "zerot/composition";
+
+// Base contract for all user operations
+const baseUserContract = {
+  requires: [auth('user'), validates(BaseUserSchema)],
+  ensures: [auditLog('user_operation')]
+};
+
+// Admin-specific additions
+const adminEnhancements = {
+  requires: [auth('admin')],
+  ensures: [auditLog('admin_operation', { sensitivity: 'high' })]
+};
+
+// Compose contracts
+const adminUserContract = composeContracts(baseUserContract, adminEnhancements);
+
+@contract(adminUserContract)
+async adminUserOperation(input: AdminUserInput) { /* ... */ }
+```
+
+## 📈 Real-World Examples
+
+### E-commerce Platform
+
+```typescript
+class OrderService {
+  @contract({
+    requires: [
+      auth("customer"),
+      validates(OrderSchema),
+      businessRule("Items must be in stock", async (input) => {
+        return await checkStockAvailability(input.items);
+      }),
+      businessRule(
+        "Customer has valid payment method",
+        async (input, context) => {
+          return await hasValidPaymentMethod(context.user.id);
+        }
+      ),
+      rateLimit("order_creation", 5, 300000), // 5 orders per 5 minutes
+    ],
+    ensures: [
+      returns(OrderConfirmationSchema),
+      auditLog("order_created"),
+      businessRule("Inventory updated", async (output) => {
+        return await verifyInventoryUpdate(output.orderId);
+      }),
+    ],
+    layer: "business",
+    retryAttempts: 2,
+  })
+  async createOrder(input: OrderInput): Promise<OrderConfirmation> {
+    // Reserve inventory
+    await this.inventoryService.reserve(input.items);
+
+    // Process payment
+    const payment = await this.paymentService.charge(
+      input.paymentMethodId,
+      input.total
+    );
+
+    // Create order record
+    const order = await this.orderRepository.create({
+      ...input,
+      paymentId: payment.id,
+      status: "confirmed",
+    });
+
+    // Send confirmation
+    await this.notificationService.sendOrderConfirmation(order);
+
+    return {
+      orderId: order.id,
+      confirmationNumber: order.confirmationNumber,
+      estimatedDelivery: order.estimatedDelivery,
+    };
+  }
+
+  @contract({
+    requires: [
+      auth("customer"),
+      owns("orderId"),
+      businessRule("Order can be cancelled", async (input) => {
+        const order = await getOrder(input.orderId);
+        return order.status === "confirmed" && !order.isShipped;
+      }),
+    ],
+    ensures: [
+      auditLog("order_cancelled"),
+      businessRule("Refund processed", async (output, input) => {
+        return await verifyRefund(input.orderId);
+      }),
+    ],
+  })
+  async cancelOrder(input: { orderId: string }): Promise<void> {
+    await this.orderRepository.updateStatus(input.orderId, "cancelled");
+    await this.paymentService.refund(input.orderId);
+    await this.inventoryService.release(input.orderId);
+  }
+}
+```
+
+### Content Management System
+
+```typescript
+class ContentService {
+  @contract({
+    requires: [
+      auth("editor"),
+      validates(ArticleSchema),
+      businessRule("Article title is unique", async (input) => {
+        const existing = await findArticleByTitle(input.title);
+        return !existing;
+      }),
+      rateLimit("content_creation", 20, 3600000), // 20 articles per hour
+    ],
+    ensures: [
+      returns(ArticleOutputSchema),
+      auditLog("article_created"),
+      businessRule("Article indexed for search", async (output) => {
+        return await verifySearchIndex(output.id);
+      }),
+    ],
+  })
+  async createArticle(input: ArticleInput): Promise<Article> {
+    // Create article
+    const article = await this.articleRepository.create({
+      ...input,
+      authorId: this.context.user.id,
+      status: "draft",
+      createdAt: new Date(),
+    });
+
+    // Process content
+    const processedContent = await this.contentProcessor.process(input.content);
+    await this.articleRepository.updateContent(article.id, processedContent);
+
+    // Index for search
+    await this.searchService.index(article);
+
+    return article;
+  }
+
+  @contract({
+    requires: [
+      auth("user"),
+      businessRule("Article is published", async (input) => {
+        const article = await getArticle(input.articleId);
+        return article.status === "published";
+      }),
+    ],
+    ensures: [returns(ArticleViewSchema), auditLog("article_viewed")],
+    layer: "presentation",
+  })
+  async getArticle(input: { articleId: string }): Promise<ArticleView> {
+    const article = await this.articleRepository.findById(input.articleId);
+
+    // Increment view count
+    await this.analyticsService.recordView(
+      input.articleId,
+      this.context.user?.id
+    );
+
+    return {
+      ...article,
+      viewCount: article.viewCount + 1,
+      canEdit: this.canUserEdit(article, this.context.user),
+    };
+  }
+
+  @contract({
+    requires: [
+      auth("editor"),
+      owns("articleId", "authorId"),
+      validates(ArticleUpdateSchema),
+    ],
+    ensures: [
+      auditLog("article_updated"),
+      businessRule("Change history recorded", async (output, input) => {
+        return await verifyChangeHistory(input.articleId);
+      }),
+    ],
+  })
+  async updateArticle(input: ArticleUpdateInput): Promise<void> {
+    // Record change history
+    await this.changeHistoryService.record(input.articleId, input.changes);
+
+    // Update article
+    await this.articleRepository.update(input.articleId, input.changes);
+
+    // Re-index if content changed
+    if (input.changes.content) {
+      const updatedArticle = await this.articleRepository.findById(
+        input.articleId
+      );
+      await this.searchService.reindex(updatedArticle);
+    }
+  }
+}
+```
+
+### Banking Application
+
+```typescript
+class BankingService {
+  @contract({
+    requires: [
+      auth("customer"),
+      validates(TransferSchema),
+      businessRule("Sufficient balance", async (input, context) => {
+        const balance = await getAccountBalance(context.user.accountId);
+        return balance >= input.amount;
+      }),
+      businessRule("Valid recipient account", async (input) => {
+        return await isValidAccount(input.recipientAccountId);
+      }),
+      businessRule("Transfer limits not exceeded", async (input, context) => {
+        const dailyTotal = await getDailyTransferTotal(context.user.accountId);
+        return dailyTotal + input.amount <= context.user.dailyLimit;
+      }),
+      rateLimit("transfer", 10, 3600000), // 10 transfers per hour
+    ],
+    ensures: [
+      returns(TransferConfirmationSchema),
+      auditLog("money_transfer", { sensitivity: "high" }),
+      businessRule("Balances updated correctly", async (output) => {
+        return await verifyBalanceUpdate(output.transactionId);
+      }),
+      businessRule("Transaction recorded", async (output) => {
+        return await verifyTransactionRecord(output.transactionId);
+      }),
+    ],
+    layer: "business",
+    retryAttempts: 0, // No retries for financial operations
+  })
+  async transferMoney(input: TransferInput): Promise<TransferConfirmation> {
+    // Start database transaction
+    return await this.db.transaction(async (tx) => {
+      // Debit source account
+      await this.accountService.debit(
+        input.sourceAccountId,
+        input.amount,
+        `Transfer to ${input.recipientAccountId}`,
+        tx
+      );
+
+      // Credit recipient account
+      await this.accountService.credit(
+        input.recipientAccountId,
+        input.amount,
+        `Transfer from ${input.sourceAccountId}`,
+        tx
+      );
+
+      // Create transaction record
+      const transaction = await this.transactionService.create(
+        {
+          type: "transfer",
+          amount: input.amount,
+          sourceAccountId: input.sourceAccountId,
+          recipientAccountId: input.recipientAccountId,
+          reference: input.reference,
+          status: "completed",
+        },
+        tx
+      );
+
+      // Send notifications
+      await this.notificationService.sendTransferConfirmation(transaction);
+
+      return {
+        transactionId: transaction.id,
+        confirmationNumber: transaction.confirmationNumber,
+        timestamp: transaction.createdAt,
+      };
+    });
+  }
+
+  @contract({
+    requires: [
+      auth("customer"),
+      owns("accountId"),
+      validates(
+        z.object({
+          accountId: z.string(),
+          startDate: z.date().optional(),
+          endDate: z.date().optional(),
+        })
+      ),
+    ],
+    ensures: [
+      returns(TransactionHistorySchema),
+      auditLog("account_history_accessed"),
+    ],
+    layer: "data",
+  })
+  async getTransactionHistory(
+    input: TransactionHistoryInput
+  ): Promise<TransactionHistory> {
+    const transactions = await this.transactionRepository.findByAccount({
+      accountId: input.accountId,
+      startDate:
+        input.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      endDate: input.endDate || new Date(),
+    });
+
+    return {
+      accountId: input.accountId,
+      transactions: transactions.map((t) => ({
+        id: t.id,
+        type: t.type,
+        amount: t.amount,
+        description: t.description,
+        timestamp: t.createdAt,
+        balance: t.runningBalance,
+      })),
+      totalCount: transactions.length,
+    };
+  }
+}
+```
+
+## 🔧 API Reference
+
+### Core Decorators
+
+#### `@contract(options)`
+
+Apply a contract to a method.
+
+**Parameters:**
+
+- `requires?: Condition[]` - Pre-conditions (validated before method execution)
+- `ensures?: Condition[]` - Post-conditions (validated after method execution)
+- `invariants?: Condition[]` - Conditions that must hold before AND after
+- `layer?: string` - Application layer classification
+- `retryAttempts?: number` - Number of retry attempts
+- `retryDelayMs?: number` - Delay between retries
+- `retryOnCategories?: ErrorCategory[]` - Error categories to retry
+
+### Built-in Conditions
+
+#### `auth(requiredRole?: string)`
+
+Authentication and role-based access control.
+
+```typescript
+auth(); // Any authenticated user
+auth("admin"); // Must have 'admin' role
+auth("moderator"); // Must have 'moderator' role
+```
+
+#### `validates(schema: ZodSchema, transformer?)`
+
+Input validation with optional transformation.
+
+```typescript
+validates(UserSchema); // Basic validation
+validates(UserSchema, (user) => ({
+  // With transformation
+  ...user,
+  fullName: `${user.firstName} ${user.lastName}`,
+}));
+```
+
+#### `returns(schema: ZodSchema)`
+
+Output validation against a Zod schema.
+
+```typescript
+ensures: [returns(UserOutputSchema)];
+```
+
+#### `owns(resourceField: string)`
+
+Verifies resource ownership.
+
+```typescript
+owns("documentId"); // Checks if user owns the document
+owns("projectId"); // Checks if user owns the project
+```
+
+#### `rateLimit(operation: string, limit: number, windowMs?: number)`
+
+Rate limiting for operations.
+
+```typescript
+rateLimit("api_call", 100); // 100 per minute (default)
+rateLimit("upload", 5, 60000); // 5 per minute
+rateLimit("login", 3, 300000); // 3 per 5 minutes
+```
+
+#### `auditLog(action: string)`
+
+Audit event logging.
+
+```typescript
+auditLog("user_created");
+auditLog("sensitive_data_accessed");
+```
+
+#### `businessRule(description: string, rule: Function)`
+
+Custom business logic validation.
+
+```typescript
+businessRule("Order total must be positive", (input) => input.total > 0);
+
+businessRule("User must have sufficient balance", async (input, context) => {
+  const balance = await getBalance(context.user.id);
+  return balance >= input.amount;
+});
+```
+
+### Error Classes
+
+#### `ContractError`
+
+Base error class for contract-related issues.
+
+```typescript
+throw new ContractError("Validation failed", {
+  code: "VALIDATION_ERROR",
+  category: ErrorCategory.VALIDATION,
+  details: { field: "email" },
+  isRecoverable: false,
+});
+```
+
+#### `ContractViolationError`
+
+Indicates a contract violation.
+
+```typescript
+// Automatically thrown by contract system
+catch (error) {
+  if (error instanceof ContractViolationError) {
+    console.log(error.contractName); // Method name
+    console.log(error.layer);        // Application layer
+    console.log(error.originalError); // Original error
+
+    const response = error.getAppropriateResponse();
+  }
+}
+```
+
+### Utility Classes
+
+#### `ContractDebugger`
+
+Development debugging utilities.
+
+```typescript
+ContractDebugger.getContractReport(); // Execution history
+ContractDebugger.getFailureAnalysis(); // Failure patterns
+ContractDebugger.exportTrace(contractName); // Export execution trace
+```
+
+#### `ContractPerformanceMonitor`
+
+Performance monitoring utilities.
+
+```typescript
+ContractPerformanceMonitor.measureContract(name, fn);
+ContractPerformanceMonitor.getPerformanceReport();
+ContractPerformanceMonitor.getSlowOperations();
+```
+
+#### `Metrics`
+
+Custom metrics collection.
+
+```typescript
+Metrics.increment(name, labels?); // Counter metric
+Metrics.gauge(name, value, labels?); // Gauge metric
+Metrics.record(name, value, labels?); // Histogram metric
+Metrics.getReport(); // Get all metrics
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/meta-closure/zerot.git
+cd zerot
+
+# Install dependencies
+npm install
+
+# Run tests
+npm test
+
+# Build the project
+npm run build
+
+# Run in development mode
+npm run dev
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run specific test file
+npm test -- user.spec.ts
+```
+
+### Code Quality
+
+```bash
+# Lint code
+npm run lint
+
+# Fix linting issues
+npm run lint:fix
+
+# Format code
+npm run format
+
+# Type check
+npm run type-check
+```
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
