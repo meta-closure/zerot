@@ -1,6 +1,6 @@
 {
   "name": "zerot",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Design by Contract framework for TypeScript with zero-trust architecture principles and AI-friendly development",
   "type": "module",
   "main": "dist/index.js",
