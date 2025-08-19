@@ -1,9 +1,10 @@
-import { ContractError, ErrorCategory } from "~/core/errors";
-import { AuthContext } from "~/core/types";
+import { ContractError, ErrorCategory } from "@/core/errors";
+import { AuthContext } from "@/core/types";
 
 /**
  * Creates an authentication condition that checks if a user is logged in and has a required role.
  *
+ * @template T - The input type (can be any type, input parameter is not used)
  * @param requiredRole - An optional role string. If provided, the user must have this role.
  * @returns A condition function that takes input and authentication context, and returns a Promise resolving to a boolean.
  * @throws {ContractError} If authentication is required but no user is logged in, or if the session has expired,
@@ -32,8 +33,8 @@ import { AuthContext } from "~/core/types";
  * }
  * ```
  */
-export function auth(requiredRole?: string) {
-  return async (input: any, context: AuthContext): Promise<boolean> => {
+export function auth<T = unknown>(requiredRole?: string) {
+  return async (_input: T, context: AuthContext): Promise<boolean> => {
     if (!context.user) {
       throw new ContractError("User must be logged in", {
         code: "AUTHENTICATION_REQUIRED",

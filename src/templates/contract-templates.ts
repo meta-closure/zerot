@@ -1,11 +1,11 @@
+import { auditLog } from "@/conditions/audit";
+import { auth } from "@/conditions/auth";
+import { owns } from "@/conditions/owns";
+import { rateLimit } from "@/conditions/rate-limit";
+import { returns, validates } from "@/conditions/validation";
+import { ContractError, ErrorCategory } from "@/core/errors";
+import { AuthContext, ContractOptions } from "@/core/types";
 import { z } from "zod";
-import { auditLog } from "~/conditions/audit";
-import { auth } from "~/conditions/auth";
-import { owns } from "~/conditions/owns";
-import { rateLimit } from "~/conditions/rate-limit";
-import { returns, validates } from "~/conditions/validation";
-import { ContractError, ErrorCategory } from "~/core/errors";
-import { ContractOptions } from "~/core/types";
 
 /**
  * Zod schema for updating user information.
@@ -42,11 +42,11 @@ export const ContractTemplates = {
    * @param requiredRole - The role required for the user to perform the operation (defaults to "user").
    * @returns `ContractOptions` configured for user CRUD operations.
    */
-  userCRUD: (requiredRole: string = "user"): ContractOptions => ({
+  userCRUD: (requiredRole = "user"): ContractOptions => ({
     requires: [
       auth(requiredRole),
       validates(userUpdateSchema), // Example schema
-      owns("userId"),
+      owns<{ userId: string }>("userId"),
       rateLimit("userCRUD", 10),
     ],
     ensures: [returns(userOutputSchema), auditLog("user_crud")], // Example schema
@@ -84,20 +84,19 @@ export const ContractTemplates = {
    * Template for batch processing operations.
    * Requires admin authentication and validates that the input is an array within a size limit.
    * Applies audit logging.
-   * @param itemContract - Optional `ContractOptions` to apply to each item within the batch (not directly used here, but for conceptual extension).
    * @returns `ContractOptions` configured for batch operations.
    */
   batchOperation: (): ContractOptions => ({
     requires: [
       auth("admin"),
-      (input: any[]) => {
-        if (!Array.isArray(input)) {
+      (_input: unknown[], _context: AuthContext) => {
+        if (!Array.isArray(_input)) {
           throw new ContractError("Input must be an array", {
             code: "INVALID_BATCH_INPUT",
             category: ErrorCategory.VALIDATION,
           });
         }
-        if (input.length > 1000) {
+        if (_input.length > 1000) {
           throw new ContractError("Batch size must be ≤ 1000 items", {
             code: "BATCH_TOO_LARGE",
             category: ErrorCategory.VALIDATION,

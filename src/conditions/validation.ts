@@ -1,6 +1,6 @@
+import { ContractError, ErrorCategory } from "@/core/errors";
+import { ContractEnsuresCondition, ContractValidator } from "@/core/types"; // Import generic types
 import { z } from "zod";
-import { ContractError, ErrorCategory } from "~/core/errors";
-import { ContractEnsuresCondition, ContractValidator } from "~/core/types"; // Import generic types
 
 /**
  * Creates a validation condition that uses a Zod schema to validate and optionally transform input.
@@ -41,7 +41,7 @@ export function validates<
     try {
       const parsedInput = schema.parse(input) as z.infer<TSchema>;
       return transformer ? transformer(parsedInput) : (parsedInput as TOutput);
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         const messages = error.issues
           .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
@@ -52,11 +52,22 @@ export function validates<
           details: { issues: error.issues },
         });
       }
-      throw error;
+
+      // Handle non-ZodError cases
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new ContractError(`Validation error: ${errorMessage}`, {
+        code: "VALIDATION_ERROR",
+        category: ErrorCategory.VALIDATION,
+        details: { originalError: errorMessage },
+      });
     }
   };
+
   // Mark this function as a validator for the @contract decorator
-  (validator as any).isValidator = true;
+  (
+    validator as ContractValidator<TInput, TOutput> & { isValidator: boolean }
+  ).isValidator = true;
   return validator;
 }
 
@@ -89,15 +100,26 @@ export function validates<
 export function returns<
   TSchema extends z.ZodSchema,
   TOutput = z.infer<TSchema>,
-  TInput = any,
-  TContext = any,
+  TInput = unknown,
+  TContext = unknown,
 >(schema: TSchema): ContractEnsuresCondition<TOutput, TInput, TContext> {
   return (output: TOutput, _input: TInput, _context: TContext) => {
     try {
       schema.parse(output);
       return true;
     } catch (error: unknown) {
-      // Ensure all caught errors are wrapped in ContractError for consistent handling
+      if (error instanceof z.ZodError) {
+        const messages = error.issues
+          .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+          .join(", ");
+        return new ContractError(`Output validation failed: ${messages}`, {
+          code: "OUTPUT_VALIDATION_FAILED",
+          category: ErrorCategory.VALIDATION,
+          details: { issues: error.issues },
+        });
+      }
+
+      // Handle non-ZodError cases
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       const errorStack = error instanceof Error ? error.stack : undefined;

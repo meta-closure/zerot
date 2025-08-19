@@ -1,9 +1,9 @@
-import { describe, it, expect } from "vitest";
 import {
-  ErrorCategory,
   ContractError,
   ContractViolationError,
-} from "~/core/errors"; // Adjust import path as needed
+  ErrorCategory,
+} from "@/core/errors"; // Adjust import path as needed
+import { describe, expect, it } from "vitest";
 
 describe("Error Classes", () => {
   describe("ErrorCategory", () => {

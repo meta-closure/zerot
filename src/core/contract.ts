@@ -2,11 +2,42 @@ import {
   ContractError,
   ContractViolationError,
   ErrorCategory,
-} from "~/core/errors";
-import { AuthContext, ContractOptions, getAuthContext } from "~/core/types";
-import { delay } from "~/utils/delay";
-import { logger } from "~/utils/logger";
-import { isValidator } from "~/utils/type-guards";
+} from "@/core/errors";
+import {
+  AuthContext,
+  ContractOptions,
+  getAuthContext,
+  isValidator,
+} from "@/core/types";
+import { delay } from "@/utils/delay";
+import { logger } from "@/utils/logger";
+
+/**
+ * Type guard to check if an error is an Error instance
+ */
+function isError(error: unknown): error is Error {
+  return error instanceof Error;
+}
+
+/**
+ * Safely extract error message from unknown error
+ */
+function getErrorMessage(error: unknown): string {
+  if (isError(error)) {
+    return error.message;
+  }
+  return String(error);
+}
+
+/**
+ * Safely extract error stack from unknown error
+ */
+function getErrorStack(error: unknown): string | undefined {
+  if (isError(error)) {
+    return error.stack;
+  }
+  return undefined;
+}
 
 /**
  * The main contract decorator.
@@ -81,9 +112,18 @@ export function contract<
     ): Promise<TOutput> {
       const contractName = `${target.constructor.name}.${propertyName}`;
 
+      console.log(`[CONTRACT] ${contractName} - Starting execution`);
+
       // If context is not passed as an argument, retrieve it from the global session provider.
+      console.log(`[CONTRACT] ${contractName} - Getting auth context...`);
       const context: TContext = (contextFromArgs ||
         (await getAuthContext())) as TContext; // Cast to TContext
+
+      console.log(`[CONTRACT] ${contractName} - Auth context:`, {
+        hasUser: !!context.user,
+        userId: context.user?.id,
+        hasSession: !!context.session,
+      });
 
       const maxAttempts =
         options.retryAttempts !== undefined ? options.retryAttempts + 1 : 1; // +1 for the initial attempt
@@ -99,14 +139,23 @@ export function contract<
            * Validators can transform the input, while other conditions return a boolean or ContractError.
            */
           let validatedInput: TInput = input;
+          console.log(
+            `[CONTRACT] ${contractName} - Checking ${options.requires?.length || 0} pre-conditions...`
+          );
+
           for (const condition of options.requires || []) {
             try {
               if (isValidator<TInput, TContext>(condition)) {
                 // If the condition is a validator, it can transform the input.
+                console.log(
+                  `[CONTRACT] ${contractName} - Running validator...`
+                );
                 validatedInput = await condition(validatedInput);
               } else {
                 // For other conditions, evaluate the result.
-                // The cast to ContractCondition is safe here because isValidator has already checked for validators.
+                console.log(
+                  `[CONTRACT] ${contractName} - Running condition...`
+                );
                 const conditionResult = await condition(
                   validatedInput,
                   context
@@ -133,8 +182,13 @@ export function contract<
                     )
                   );
                 }
+                console.log(`[CONTRACT] ${contractName} - Condition passed`);
               }
-            } catch (error) {
+            } catch (error: unknown) {
+              console.error(
+                `[CONTRACT] ${contractName} - Condition failed:`,
+                getErrorMessage(error)
+              );
               // Handle errors from individual conditions (especially validators)
               if (error instanceof ContractViolationError) {
                 // Re-throw ContractViolationError as-is
@@ -149,13 +203,13 @@ export function contract<
               } else {
                 // Wrap other errors in ContractError then ContractViolationError
                 const contractError = new ContractError(
-                  (error as Error).message,
+                  getErrorMessage(error),
                   {
                     code: "UNEXPECTED_ERROR",
                     category: ErrorCategory.SYSTEM,
                     details: {
-                      originalErrorMessage: (error as Error).message,
-                      originalErrorStack: (error as Error).stack,
+                      originalErrorMessage: getErrorMessage(error),
+                      originalErrorStack: getErrorStack(error),
                     },
                     isRecoverable: false,
                   }
@@ -169,6 +223,10 @@ export function contract<
             }
           }
 
+          console.log(
+            `[CONTRACT] ${contractName} - All pre-conditions passed, executing method...`
+          );
+
           // Execute the original method
           const result: TOutput = await originalMethod.call(
             this,
@@ -176,10 +234,18 @@ export function contract<
             context
           );
 
+          console.log(
+            `[CONTRACT] ${contractName} - Method executed successfully`
+          );
+
           /**
            * Post-condition checks (ensures)
            * These conditions must pass after the original method has successfully executed.
            */
+          console.log(
+            `[CONTRACT] ${contractName} - Checking ${options.ensures?.length || 0} post-conditions...`
+          );
+
           for (const condition of options.ensures || []) {
             const checkResult = await condition(
               result,
@@ -237,8 +303,11 @@ export function contract<
             }
           }
 
+          console.log(
+            `[CONTRACT] ${contractName} - All conditions passed, returning result`
+          );
           return result; // If successful, break the retry loop
-        } catch (error) {
+        } catch (error: unknown) {
           attempts++;
 
           // Handle ContractViolationError differently - don't wrap it again
@@ -259,8 +328,7 @@ export function contract<
                 : "UNKNOWN_ERROR";
 
             const shouldRetry =
-              (isRecoverable ||
-                (retryOnCategories && retryOnCategories.includes(category))) &&
+              (isRecoverable || retryOnCategories?.includes(category)) &&
               attempts < maxAttempts;
 
             if (shouldRetry) {
@@ -285,12 +353,12 @@ export function contract<
             const contractError =
               error instanceof ContractError
                 ? error
-                : new ContractError((error as Error).message, {
+                : new ContractError(getErrorMessage(error), {
                     code: "UNEXPECTED_ERROR",
                     category: ErrorCategory.SYSTEM,
                     details: {
-                      originalErrorMessage: (error as Error).message,
-                      originalErrorStack: (error as Error).stack,
+                      originalErrorMessage: getErrorMessage(error),
+                      originalErrorStack: getErrorStack(error),
                     },
                     isRecoverable: false,
                   });
@@ -298,8 +366,7 @@ export function contract<
             // Check if a retry is warranted based on recoverability or specified categories
             const shouldRetry =
               (contractError.isRecoverable ||
-                (retryOnCategories &&
-                  retryOnCategories.includes(contractError.category))) &&
+                retryOnCategories?.includes(contractError.category)) &&
               attempts < maxAttempts;
 
             if (shouldRetry) {

@@ -1,36 +1,31 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { contract } from "~/core/contract";
+import { contract } from "@/core/contract";
 import {
   ContractError,
   ContractViolationError,
   ErrorCategory,
-} from "~/core/errors";
-import { AuthContext } from "~/core/types";
+} from "@/core/errors";
+import { AuthContext } from "@/core/types";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock dependencies
-vi.mock("~/utils/delay", () => ({
+vi.mock("@/utils/delay", () => ({
   delay: vi.fn((ms: number) => Promise.resolve()),
 }));
 
-vi.mock("~/utils/logger", () => ({
+vi.mock("@/utils/logger", () => ({
   logger: {
     warn: vi.fn(),
   },
 }));
 
-vi.mock("~/utils/type-guards", () => ({
+vi.mock("@/core/types", () => ({
+  getAuthContext: vi.fn(),
   isValidator: vi.fn(),
 }));
 
-vi.mock("./types", () => ({
-  getAuthContext: vi.fn(),
-  AuthContext: {},
-}));
-
-import { delay } from "~/utils/delay";
-import { logger } from "~/utils/logger";
-import { isValidator } from "~/utils/type-guards";
-import { getAuthContext } from "~/core/types";
+import { getAuthContext, isValidator } from "@/core/types";
+import { delay } from "@/utils/delay";
+import { logger } from "@/utils/logger";
 
 // Test types
 interface TestInput {
@@ -72,7 +67,7 @@ class TestService {
   @contract({
     requires: [
       // Mock validator that doubles the value
-      async (input: TestInput) => ({ ...input, value: input.value * 2 }),
+      ((input: TestInput) => ({ ...input, value: input.value * 2 })) as any,
       // Mock condition that checks name is not empty
       async (input: TestInput, context: TestAuthContext) =>
         input.name.length > 0,
@@ -241,11 +236,14 @@ describe("contract decorator", () => {
 
     // Default mock implementations
     vi.mocked(getAuthContext).mockResolvedValue(mockAuthContext);
+
+    // Mock isValidator function
     vi.mocked(isValidator).mockImplementation((fn: any) => {
-      // Mock logic to determine if a function is a validator
-      // In this test, we'll assume validators are functions that transform input
-      // and conditions are functions that return boolean or ContractError
-      return fn.toString().includes("value: input.value * 2");
+      // Check if function has isValidator property or if it's a validator-like function
+      return (
+        fn.isValidator === true ||
+        fn.toString().includes("value: input.value * 2")
+      );
     });
   });
 
@@ -273,6 +271,7 @@ describe("contract decorator", () => {
       const result = await service.basicMethod(input, customContext);
 
       expect(result).toBeDefined();
+      // When context is provided, getAuthContext should not be called
       expect(vi.mocked(getAuthContext)).not.toHaveBeenCalled();
     });
 

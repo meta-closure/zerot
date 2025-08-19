@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { auth } from "~/conditions/auth";
-import { ContractError, ErrorCategory } from "~/core/errors";
-import { AuthContext } from "~/core/types";
+import { auth } from "@/conditions/auth";
+import { ContractError, ErrorCategory } from "@/core/errors";
+import { AuthContext } from "@/core/types";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 describe("auth", () => {
   let mockContext: AuthContext;

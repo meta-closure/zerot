@@ -1,4 +1,65 @@
-import { logger } from "~/utils/logger";
+import { logger } from "@/utils/logger";
+
+/**
+ * Supported contract execution layers
+ */
+type ContractLayer =
+  | "controller"
+  | "service"
+  | "repository"
+  | "middleware"
+  | "validator";
+
+/**
+ * Status of contract execution
+ */
+type ExecutionStatus = "success" | "failure";
+
+/**
+ * Sensitive field names that should be excluded from logs
+ */
+type SensitiveField = "password" | "token" | "secret" | "apiKey" | "privateKey";
+
+/**
+ * Contract execution history entry
+ */
+interface ContractExecution<TInput = unknown, TOutput = unknown> {
+  contractName: string;
+  layer: ContractLayer;
+  timestamp: Date;
+  input: TInput;
+  output?: TOutput;
+  status: ExecutionStatus;
+  error?: Error;
+}
+
+/**
+ * Layer statistics for contract executions
+ */
+interface LayerStats {
+  success: number;
+  failure: number;
+}
+
+/**
+ * Contract execution report
+ */
+interface ContractReport {
+  total: number;
+  success: number;
+  failure: number;
+  successRate: string;
+  layerStats: Record<ContractLayer, LayerStats>;
+}
+
+/**
+ * Global window extensions for development
+ */
+declare global {
+  interface Window {
+    __contractDebugger?: typeof ContractDebugger;
+  }
+}
 
 /**
  * Provides debugging utilities for contract execution.
@@ -6,15 +67,7 @@ import { logger } from "~/utils/logger";
  * This class is primarily intended for use in development environments.
  */
 export class ContractDebugger {
-  private static contractHistory: Array<{
-    contractName: string;
-    layer: string;
-    timestamp: Date;
-    input: any;
-    output?: any;
-    status: "success" | "failure";
-    error?: any;
-  }> = [];
+  private static contractHistory: Array<ContractExecution> = [];
 
   /**
    * Logs the execution of a contract method.
@@ -25,22 +78,24 @@ export class ContractDebugger {
    * @param output - The output returned by the contract method (if successful).
    * @param error - Any error that occurred during contract execution (if failed).
    */
-  static logContractExecution(
+  static logContractExecution<TInput = unknown, TOutput = unknown>(
     contractName: string,
-    layer: string,
-    input: any,
-    output?: any,
-    error?: any
-  ) {
-    this.contractHistory.push({
+    layer: ContractLayer,
+    input: TInput,
+    output?: TOutput,
+    error?: Error
+  ): void {
+    const execution: ContractExecution<TInput, TOutput> = {
       contractName,
       layer,
       timestamp: new Date(),
       input: this.sanitizeForLog(input),
-      output: this.sanitizeForLog(output),
+      output: output ? this.sanitizeForLog(output) : undefined,
       status: error ? "failure" : "success",
       error,
-    });
+    };
+
+    this.contractHistory.push(execution);
 
     const metadata = {
       layer,
@@ -71,27 +126,64 @@ export class ContractDebugger {
 
     const layerStats = this.contractHistory.reduce(
       (acc, h) => {
-        acc[h.layer] = acc[h.layer] || { success: 0, failure: 0 };
+        if (!acc[h.layer]) {
+          acc[h.layer] = { success: 0, failure: 0 };
+        }
         acc[h.layer][h.status]++;
         return acc;
       },
-      {} as Record<string, { success: number; failure: number }>
+      {} as Record<ContractLayer, LayerStats>
     );
 
-    return JSON.stringify(
-      {
-        total: this.contractHistory.length,
-        success: successCount,
-        failure: failureCount,
-        successRate: `${(
-          (successCount / this.contractHistory.length) *
-          100
-        ).toFixed(1)}%`,
-        layerStats,
-      },
-      null,
-      2
-    );
+    const report: ContractReport = {
+      total: this.contractHistory.length,
+      success: successCount,
+      failure: failureCount,
+      successRate:
+        this.contractHistory.length > 0
+          ? `${((successCount / this.contractHistory.length) * 100).toFixed(1)}%`
+          : "0.0%",
+      layerStats,
+    };
+
+    return JSON.stringify(report, null, 2);
+  }
+
+  /**
+   * Gets the raw contract execution history
+   * @returns Array of contract executions
+   */
+  static getHistory(): ReadonlyArray<ContractExecution> {
+    return [...this.contractHistory];
+  }
+
+  /**
+   * Clears the contract execution history
+   */
+  static clearHistory(): void {
+    this.contractHistory = [];
+  }
+
+  /**
+   * Gets contract executions filtered by layer
+   * @param layer - The layer to filter by
+   * @returns Array of contract executions for the specified layer
+   */
+  static getHistoryByLayer(
+    layer: ContractLayer
+  ): ReadonlyArray<ContractExecution> {
+    return this.contractHistory.filter((h) => h.layer === layer);
+  }
+
+  /**
+   * Gets contract executions filtered by status
+   * @param status - The status to filter by
+   * @returns Array of contract executions with the specified status
+   */
+  static getHistoryByStatus(
+    status: ExecutionStatus
+  ): ReadonlyArray<ContractExecution> {
+    return this.contractHistory.filter((h) => h.status === status);
   }
 
   /**
@@ -99,22 +191,60 @@ export class ContractDebugger {
    * @param data - The data to sanitize.
    * @returns The sanitized data.
    */
-  private static sanitizeForLog(data: any): any {
+  private static sanitizeForLog<T>(data: T): T {
     if (typeof data !== "object" || data === null) {
       return data;
     }
 
-    const sanitized = { ...data };
-    // Exclude sensitive information
-    delete sanitized.password;
-    delete sanitized.token;
-    delete sanitized.secret;
+    if (Array.isArray(data)) {
+      return data.map((item) => this.sanitizeForLog(item)) as T;
+    }
 
-    return sanitized;
+    // Type guard to check if the object has string keys
+    if (this.isRecord(data)) {
+      const sanitized: Record<string, unknown> = {};
+
+      for (const [key, value] of Object.entries(data)) {
+        if (this.isSensitiveField(key)) {
+          sanitized[key] = "[REDACTED]";
+        } else if (typeof value === "object" && value !== null) {
+          sanitized[key] = this.sanitizeForLog(value);
+        } else {
+          sanitized[key] = value;
+        }
+      }
+
+      return sanitized as T;
+    }
+
+    return data;
+  }
+
+  /**
+   * Type guard to check if a value is a record (object with string keys)
+   */
+  private static isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+
+  /**
+   * Type guard to check if a field name is sensitive
+   */
+  private static isSensitiveField(
+    fieldName: string
+  ): fieldName is SensitiveField {
+    const sensitiveFields: SensitiveField[] = [
+      "password",
+      "token",
+      "secret",
+      "apiKey",
+      "privateKey",
+    ];
+    return sensitiveFields.includes(fieldName as SensitiveField);
   }
 }
 
 // Global contract monitor for development environment
 if (typeof window !== "undefined") {
-  (window as any).__contractDebugger = ContractDebugger;
+  window.__contractDebugger = ContractDebugger;
 }

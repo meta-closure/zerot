@@ -1,4 +1,4 @@
-import { ContractError, ErrorCategory } from "~/core/errors";
+import { ContractError, ErrorCategory } from "@/core/errors";
 
 /**
  * Type guard to check if a condition is a validator.
@@ -172,59 +172,35 @@ export type ResourceProvider = (
 ) => Promise<{ id: string; userId: string } | null>;
 
 /**
- * Internal variable to hold the session provider instance.
- */
-let _sessionProvider: SessionProvider | undefined;
-
-/**
- * Internal variable to hold the resource provider instance.
- */
-let _resourceProvider: ResourceProvider | undefined;
-
-/**
- * Sets the global session provider.
- * This function should be called once at the application's entry point to configure
- * how the authentication context is retrieved.
- * @param provider - The function that provides the authentication context.
- */
-export function setSessionProvider(provider: SessionProvider | undefined) {
-  _sessionProvider = provider;
-}
-
-/**
- * Sets the global resource provider.
- * This function should be called once at the application's entry point to configure
- * how resources are retrieved for ownership checks.
- * @param provider - The function that provides resource details by ID.
- */
-export function setResourceProvider(provider: ResourceProvider) {
-  _resourceProvider = provider;
-}
-
-/**
- * Retrieves the current authentication context.
- * If a session provider is set, it will be used to get the context.
- * Otherwise, an empty context is returned, allowing authentication conditions to handle it.
- * Handles errors gracefully by returning an empty context.
+ * Retrieves the current authentication context from the config system.
  * @returns A Promise that resolves to the authentication context.
  */
 export async function getAuthContext(): Promise<AuthContext> {
-  if (!_sessionProvider) {
-    // Return an empty context by default, allowing authentication conditions to check for it.
-    return {};
-  }
+  console.log("[GET_AUTH_CONTEXT] Called");
 
   try {
-    const result = await _sessionProvider();
+    const { zerotConfig } = await import("../config");
+    const sessionProvider = zerotConfig.get("sessionProvider");
 
-    // Handle null or undefined results by returning empty context
+    console.log("[GET_AUTH_CONTEXT] SessionProvider found:", !!sessionProvider);
+
+    if (!sessionProvider) {
+      console.warn("[GET_AUTH_CONTEXT] No sessionProvider configured");
+      return {};
+    }
+
+    console.log("[GET_AUTH_CONTEXT] Calling sessionProvider...");
+    const result = await sessionProvider();
+    console.log("[GET_AUTH_CONTEXT] SessionProvider result:", result);
+
     if (result === null || result === undefined) {
+      console.log("[GET_AUTH_CONTEXT] SessionProvider returned null/undefined");
       return {};
     }
 
     return result;
   } catch (error) {
-    // Return empty context on any error (synchronous or asynchronous)
+    console.error("[GET_AUTH_CONTEXT] Error:", error);
     return {};
   }
 }
@@ -233,15 +209,32 @@ export async function getAuthContext(): Promise<AuthContext> {
  * Retrieves a resource using the configured resource provider.
  * @param resourceId - The ID of the resource to retrieve.
  * @returns A Promise that resolves to the resource object or null if not found.
- * @throws {Error} If no resource provider has been set.
+ * @throws {Error} If no resource provider has been configured.
  */
 export async function getResource(
   resourceId: string
 ): Promise<{ id: string; userId: string } | null> {
-  if (!_resourceProvider) {
-    throw new Error(
-      "Resource provider not set. Call setResourceProvider to configure how resources are retrieved."
-    );
+  console.log("[GET_RESOURCE] Called with resourceId:", resourceId);
+
+  try {
+    const { zerotConfig } = await import("../config");
+    const resourceProvider = zerotConfig.get("resourceProvider");
+
+    console.log("[GET_RESOURCE] ResourceProvider found:", !!resourceProvider);
+
+    if (!resourceProvider) {
+      throw new Error(
+        "Resource provider not configured. Call configureZerot() with resourceProvider."
+      );
+    }
+
+    console.log("[GET_RESOURCE] Calling resourceProvider...");
+    const result = await resourceProvider(resourceId);
+    console.log("[GET_RESOURCE] ResourceProvider result:", result);
+
+    return result;
+  } catch (error) {
+    console.error("[GET_RESOURCE] Error:", error);
+    throw error;
   }
-  return await _resourceProvider(resourceId);
 }

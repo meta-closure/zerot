@@ -1,10 +1,10 @@
+import { auditLog } from "@/conditions/audit";
+import { auth } from "@/conditions/auth";
+import { owns } from "@/conditions/owns";
+import { rateLimit } from "@/conditions/rate-limit";
+import { returns, validates } from "@/conditions/validation";
+import { ContractOptions } from "@/core/types";
 import { z } from "zod";
-import { auditLog } from "~/conditions/audit";
-import { auth } from "~/conditions/auth";
-import { owns } from "~/conditions/owns";
-import { rateLimit } from "~/conditions/rate-limit";
-import { returns, validates } from "~/conditions/validation";
-import { ContractOptions } from "~/core/types";
 
 // Placeholder schemas for demonstration.
 // In a real application, these would be defined elsewhere or passed in.
@@ -31,6 +31,11 @@ const userOutputSchema = z.object({
 });
 
 /**
+ * Schema registry type
+ */
+type SchemaRegistry = Record<string, Record<string, z.ZodSchema>>;
+
+/**
  * Retrieves the appropriate Zod schema for a given resource and operation.
  * This function acts as a lookup for input/output validation schemas.
  *
@@ -42,7 +47,7 @@ function getSchemaForResource(
   resource: string,
   operation: string
 ): z.ZodSchema {
-  const schemas: { [key: string]: { [key: string]: z.ZodSchema } } = {
+  const schemas: SchemaRegistry = {
     user: {
       create: userCreateSchema,
       update: userUpdateSchema,
@@ -74,7 +79,7 @@ function getSchemaForResource(
  *     visibility: "admin",
  *     rateLimit: 10
  *   }))
- *   async createProduct(productData: any) {
+ *   async createProduct(productData: unknown) {
  *     // Logic to create a product
  *   }
  *
@@ -112,7 +117,9 @@ export function smartContract(options: {
       contracts.requires!.push(auth("user"));
       // For non-create private operations, ownership check is required
       if (options.operation !== "create") {
-        contracts.requires!.push(owns(`${options.resource}Id`));
+        contracts.requires!.push(
+          owns<Record<string, unknown>>(`${options.resource}Id`)
+        );
       }
       break;
     case "admin":

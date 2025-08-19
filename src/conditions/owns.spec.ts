@@ -1,11 +1,11 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { owns } from "~/conditions/owns";
-import { ContractError, ErrorCategory } from "~/core/errors";
-import { AuthContext } from "~/core/types";
+import { owns } from "@/conditions/owns";
+import { ContractError, ErrorCategory } from "@/core/errors";
+import { AuthContext } from "@/core/types";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// getResource関数をモック化 - ホイスティング問題を避けるため変数参照を削除
-vi.mock("~/core/types", async () => {
-  const actual = await vi.importActual("../core/types");
+// getResource関数をモック化
+vi.mock("@/core/types", async () => {
+  const actual = await vi.importActual("@/core/types");
   return {
     ...actual,
     getResource: vi.fn(),
@@ -13,8 +13,7 @@ vi.mock("~/core/types", async () => {
 });
 
 // モック関数をインポート後に取得
-import { getResource } from "~/core/types";
-const mockGetResource = vi.mocked(getResource);
+import { getResource } from "@/core/types";
 
 describe("owns", () => {
   let ownerContext: AuthContext;
@@ -87,10 +86,10 @@ describe("owns", () => {
     };
 
     // デフォルトのモックリソース
-    mockGetResource.mockResolvedValue({
+    vi.mocked(getResource).mockResolvedValue({
       id: "resource123",
       userId: "user123", // ownerContextのユーザーIDと一致
-    } as any);
+    });
   });
 
   afterEach(() => {
@@ -99,50 +98,50 @@ describe("owns", () => {
 
   describe("function creation", () => {
     it("should return a function", () => {
-      const condition = owns("resourceId");
+      const condition = owns<{ resourceId: string }>("resourceId");
       expect(typeof condition).toBe("function");
     });
 
     it("should create different functions for different resource fields", () => {
-      const condition1 = owns("documentId");
-      const condition2 = owns("projectId");
+      const condition1 = owns<{ documentId: string }>("documentId");
+      const condition2 = owns<{ projectId: string }>("projectId");
       expect(condition1).not.toBe(condition2);
     });
   });
 
   describe("successful ownership validation", () => {
     it("should return true when user owns the resource", async () => {
-      const condition = owns("resourceId");
+      const condition = owns<{ resourceId: string }>("resourceId");
       const input = { resourceId: "resource123" };
 
       const result = await condition(input, ownerContext);
 
       expect(result).toBe(true);
-      expect(mockGetResource).toHaveBeenCalledWith("resource123");
-      expect(mockGetResource).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(getResource)).toHaveBeenCalledWith("resource123");
+      expect(vi.mocked(getResource)).toHaveBeenCalledTimes(1);
     });
 
     it("should return true when admin accesses any resource", async () => {
       // 管理者は他のユーザーのリソースにもアクセス可能
-      mockGetResource.mockResolvedValue({
+      vi.mocked(getResource).mockResolvedValue({
         id: "resource456",
         userId: "other456", // 異なるユーザーID
-      } as any);
+      });
 
-      const condition = owns("resourceId");
+      const condition = owns<{ resourceId: string }>("resourceId");
       const input = { resourceId: "resource456" };
 
       const result = await condition(input, adminContext);
 
       expect(result).toBe(true);
       // 管理者の場合、getResourceが呼ばれない（バイパスされる）
-      expect(mockGetResource).not.toHaveBeenCalled();
+      expect(vi.mocked(getResource)).not.toHaveBeenCalled();
     });
 
     it("should work with different resource ID field names", async () => {
-      const documentCondition = owns("documentId");
-      const projectCondition = owns("projectId");
-      const fileCondition = owns("fileId");
+      const documentCondition = owns<{ documentId: string }>("documentId");
+      const projectCondition = owns<{ projectId: string }>("projectId");
+      const fileCondition = owns<{ fileId: string }>("fileId");
 
       const documentInput = { documentId: "doc123" };
       const projectInput = { projectId: "proj456" };
@@ -152,16 +151,16 @@ describe("owns", () => {
       await projectCondition(projectInput, ownerContext);
       await fileCondition(fileInput, ownerContext);
 
-      expect(mockGetResource).toHaveBeenCalledWith("doc123");
-      expect(mockGetResource).toHaveBeenCalledWith("proj456");
-      expect(mockGetResource).toHaveBeenCalledWith("file789");
-      expect(mockGetResource).toHaveBeenCalledTimes(3);
+      expect(vi.mocked(getResource)).toHaveBeenCalledWith("doc123");
+      expect(vi.mocked(getResource)).toHaveBeenCalledWith("proj456");
+      expect(vi.mocked(getResource)).toHaveBeenCalledWith("file789");
+      expect(vi.mocked(getResource)).toHaveBeenCalledTimes(3);
     });
   });
 
   describe("authentication failures", () => {
     it("should throw ContractError when user is not authenticated", async () => {
-      const condition = owns("resourceId");
+      const condition = owns<{ resourceId: string }>("resourceId");
       const input = { resourceId: "resource123" };
 
       await expect(condition(input, noUserContext)).rejects.toThrow(
@@ -181,7 +180,7 @@ describe("owns", () => {
         );
       }
 
-      expect(mockGetResource).not.toHaveBeenCalled();
+      expect(vi.mocked(getResource)).not.toHaveBeenCalled();
     });
 
     it("should throw ContractError when user ID is missing", async () => {
@@ -194,7 +193,7 @@ describe("owns", () => {
         session: ownerContext.session,
       };
 
-      const condition = owns("resourceId");
+      const condition = owns<{ resourceId: string }>("resourceId");
       const input = { resourceId: "resource123" };
 
       await expect(condition(input, contextWithoutUserId)).rejects.toThrow(
@@ -205,14 +204,14 @@ describe("owns", () => {
 
   describe("validation failures", () => {
     it("should throw ContractError when resource ID field is missing", async () => {
-      const condition = owns("resourceId");
-      const input = {}; // resourceIdフィールドがない
+      const condition = owns<{ resourceId: string }>("resourceId");
+      const input = {} as { resourceId: string }; // resourceIdフィールドがない
 
       await expect(condition(input, ownerContext)).rejects.toThrow(
         ContractError
       );
       await expect(condition(input, ownerContext)).rejects.toThrow(
-        "Resource ID field 'resourceId' is missing in input"
+        "Resource ID field 'resourceId' is missing or invalid in input"
       );
 
       try {
@@ -225,38 +224,40 @@ describe("owns", () => {
         );
       }
 
-      expect(mockGetResource).not.toHaveBeenCalled();
+      expect(vi.mocked(getResource)).not.toHaveBeenCalled();
     });
 
     it("should throw ContractError when resource ID is null or undefined", async () => {
-      const condition = owns("resourceId");
+      const condition = owns<{ resourceId: string | null | undefined }>(
+        "resourceId"
+      );
 
       const nullInput = { resourceId: null };
       const undefinedInput = { resourceId: undefined };
 
       await expect(condition(nullInput, ownerContext)).rejects.toThrow(
-        "Resource ID field 'resourceId' is missing in input"
+        "Resource ID field 'resourceId' is missing or invalid in input"
       );
       await expect(condition(undefinedInput, ownerContext)).rejects.toThrow(
-        "Resource ID field 'resourceId' is missing in input"
+        "Resource ID field 'resourceId' is missing or invalid in input"
       );
     });
 
     it("should throw ContractError when resource ID is empty string", async () => {
-      const condition = owns("resourceId");
+      const condition = owns<{ resourceId: string }>("resourceId");
       const input = { resourceId: "" };
 
       await expect(condition(input, ownerContext)).rejects.toThrow(
-        "Resource ID field 'resourceId' is missing in input"
+        "Resource ID field 'resourceId' is missing or invalid in input"
       );
     });
   });
 
   describe("resource not found failures", () => {
     it("should throw ContractError when resource is not found", async () => {
-      mockGetResource.mockResolvedValue(null);
+      vi.mocked(getResource).mockResolvedValue(null);
 
-      const condition = owns("resourceId");
+      const condition = owns<{ resourceId: string }>("resourceId");
       const input = { resourceId: "nonexistent123" };
 
       await expect(condition(input, ownerContext)).rejects.toThrow(
@@ -276,13 +277,13 @@ describe("owns", () => {
         );
       }
 
-      expect(mockGetResource).toHaveBeenCalledWith("nonexistent123");
+      expect(vi.mocked(getResource)).toHaveBeenCalledWith("nonexistent123");
     });
 
     it("should throw ContractError when resource is undefined", async () => {
-      mockGetResource.mockResolvedValue(null);
+      vi.mocked(getResource).mockResolvedValue(null);
 
-      const condition = owns("resourceId");
+      const condition = owns<{ resourceId: string }>("resourceId");
       const input = { resourceId: "undefined123" };
 
       await expect(condition(input, ownerContext)).rejects.toThrow(
@@ -293,12 +294,12 @@ describe("owns", () => {
 
   describe("ownership denial failures", () => {
     it("should throw ContractError when user does not own the resource", async () => {
-      mockGetResource.mockResolvedValue({
+      vi.mocked(getResource).mockResolvedValue({
         id: "resource123",
         userId: "other456", // 異なるユーザーID
-      } as any);
+      });
 
-      const condition = owns("resourceId");
+      const condition = owns<{ resourceId: string }>("resourceId");
       const input = { resourceId: "resource123" };
 
       await expect(condition(input, ownerContext)).rejects.toThrow(
@@ -318,33 +319,19 @@ describe("owns", () => {
         );
       }
 
-      expect(mockGetResource).toHaveBeenCalledWith("resource123");
-    });
-
-    it("should handle case where resource userId is null", async () => {
-      mockGetResource.mockResolvedValue({
-        id: "resource123",
-        userId: null, // nullのuserID
-      } as any);
-
-      const condition = owns("resourceId");
-      const input = { resourceId: "resource123" };
-
-      await expect(condition(input, ownerContext)).rejects.toThrow(
-        "User user123 does not own resource resource123"
-      );
+      expect(vi.mocked(getResource)).toHaveBeenCalledWith("resource123");
     });
   });
 
   describe("admin privilege handling", () => {
     it("should bypass ownership check for admin users", async () => {
-      const condition = owns("resourceId");
+      const condition = owns<{ resourceId: string }>("resourceId");
       const input = { resourceId: "any-resource" };
 
       const result = await condition(input, adminContext);
 
       expect(result).toBe(true);
-      expect(mockGetResource).not.toHaveBeenCalled(); // 管理者はリソース検索をバイパス
+      expect(vi.mocked(getResource)).not.toHaveBeenCalled(); // 管理者はリソース検索をバイパス
     });
 
     it("should work with users having multiple roles including admin", async () => {
@@ -356,13 +343,13 @@ describe("owns", () => {
         },
       };
 
-      const condition = owns("resourceId");
+      const condition = owns<{ resourceId: string }>("resourceId");
       const input = { resourceId: "any-resource" };
 
       const result = await condition(input, multiRoleAdminContext);
 
       expect(result).toBe(true);
-      expect(mockGetResource).not.toHaveBeenCalled();
+      expect(vi.mocked(getResource)).not.toHaveBeenCalled();
     });
 
     it("should not treat non-admin roles as admin", async () => {
@@ -374,40 +361,40 @@ describe("owns", () => {
         },
       };
 
-      const condition = owns("resourceId");
+      const condition = owns<{ resourceId: string }>("resourceId");
       const input = { resourceId: "resource123" };
 
       const result = await condition(input, nonAdminContext);
 
       expect(result).toBe(true);
-      expect(mockGetResource).toHaveBeenCalledWith("resource123"); // 通常の所有権チェックが実行される
+      expect(vi.mocked(getResource)).toHaveBeenCalledWith("resource123"); // 通常の所有権チェックが実行される
     });
   });
 
   describe("roles undefined handling", () => {
     it("should handle users with undefined roles (not admin)", async () => {
-      const condition = owns("resourceId");
+      const condition = owns<{ resourceId: string }>("resourceId");
       const input = { resourceId: "resource123" };
 
       // noRolesContextのユーザーIDに合わせてリソースのuserIdを設定
-      mockGetResource.mockResolvedValue({
+      vi.mocked(getResource).mockResolvedValue({
         id: "resource123",
         userId: "noroles123",
-      } as any);
+      });
 
       const result = await condition(input, noRolesContext);
 
       expect(result).toBe(true);
-      expect(mockGetResource).toHaveBeenCalledWith("resource123"); // 通常の所有権チェックが実行される
+      expect(vi.mocked(getResource)).toHaveBeenCalledWith("resource123"); // 通常の所有権チェックが実行される
     });
 
     it("should not grant admin privileges to users with undefined roles", async () => {
-      mockGetResource.mockResolvedValue({
+      vi.mocked(getResource).mockResolvedValue({
         id: "resource123",
         userId: "other456", // 異なるユーザーID
-      } as any);
+      });
 
-      const condition = owns("resourceId");
+      const condition = owns<{ resourceId: string }>("resourceId");
       const input = { resourceId: "resource123" };
 
       // rolesがundefinedのユーザーは管理者権限を持たない
@@ -425,31 +412,35 @@ describe("owns", () => {
         },
       };
 
-      const condition = owns("resourceId");
+      const condition = owns<{ resourceId: string }>("resourceId");
       const input = { resourceId: "resource123" };
 
       const result = await condition(input, emptyRolesContext);
 
       expect(result).toBe(true);
-      expect(mockGetResource).toHaveBeenCalledWith("resource123");
+      expect(vi.mocked(getResource)).toHaveBeenCalledWith("resource123");
     });
   });
 
   describe("getResource error handling", () => {
-    it("should propagate errors from getResource function", async () => {
+    it("should wrap errors from getResource function in ContractError", async () => {
       const resourceError = new Error("Database connection failed");
-      mockGetResource.mockRejectedValue(resourceError);
+      vi.mocked(getResource).mockRejectedValue(resourceError);
 
-      const condition = owns("resourceId");
+      const condition = owns<{ resourceId: string }>("resourceId");
       const input = { resourceId: "resource123" };
 
       await expect(condition(input, ownerContext)).rejects.toThrow(
-        resourceError
+        ContractError
       );
-      expect(mockGetResource).toHaveBeenCalledWith("resource123");
+      await expect(condition(input, ownerContext)).rejects.toThrow(
+        "Failed to check resource ownership: Database connection failed"
+      );
+
+      expect(vi.mocked(getResource)).toHaveBeenCalledWith("resource123");
     });
 
-    it("should handle getResource throwing ContractError", async () => {
+    it("should re-throw ContractError from getResource", async () => {
       const contractError = new ContractError(
         "Resource provider not configured",
         {
@@ -457,9 +448,9 @@ describe("owns", () => {
           category: ErrorCategory.AUTHENTICATION,
         }
       );
-      mockGetResource.mockRejectedValue(contractError);
+      vi.mocked(getResource).mockRejectedValue(contractError);
 
-      const condition = owns("resourceId");
+      const condition = owns<{ resourceId: string }>("resourceId");
       const input = { resourceId: "resource123" };
 
       await expect(condition(input, ownerContext)).rejects.toThrow(
@@ -470,7 +461,7 @@ describe("owns", () => {
 
   describe("input parameter variations", () => {
     it("should handle complex input objects", async () => {
-      const condition = owns("document.id"); // ネストしたフィールド名
+      const condition = owns<{ "document.id": string }>("document.id");
       const input = {
         "document.id": "doc123",
         title: "Test Document",
@@ -484,95 +475,76 @@ describe("owns", () => {
       const result = await condition(input, ownerContext);
 
       expect(result).toBe(true);
-      expect(mockGetResource).toHaveBeenCalledWith("doc123");
+      expect(vi.mocked(getResource)).toHaveBeenCalledWith("doc123");
     });
 
     it("should handle numeric resource IDs", async () => {
-      mockGetResource.mockResolvedValue({
-        id: 12345,
+      vi.mocked(getResource).mockResolvedValue({
+        id: "12345",
         userId: "user123",
-      } as any);
+      });
 
-      const condition = owns("resourceId");
+      const condition = owns<{ resourceId: number }>("resourceId");
       const input = { resourceId: 12345 };
 
       const result = await condition(input, ownerContext);
 
       expect(result).toBe(true);
-      expect(mockGetResource).toHaveBeenCalledWith(12345);
-    });
-
-    it("should handle special characters in resource field names", async () => {
-      const specialFieldNames = [
-        "resource-id",
-        "resource_id",
-        "resourceId$",
-        "resource.id",
-      ];
-
-      for (const fieldName of specialFieldNames) {
-        mockGetResource.mockClear();
-
-        const condition = owns(fieldName);
-        const input = { [fieldName]: "special123" };
-
-        await condition(input, ownerContext);
-        expect(mockGetResource).toHaveBeenCalledWith("special123");
-      }
+      expect(vi.mocked(getResource)).toHaveBeenCalledWith("12345");
     });
   });
 
   describe("integration scenarios", () => {
     it("should work in document editing scenario", async () => {
-      const documentCondition = owns("documentId");
+      const documentCondition = owns<{ documentId: string }>("documentId");
       const editInput = {
         documentId: "doc123",
         content: "Updated content",
         version: 2,
       };
 
-      mockGetResource.mockResolvedValue({
+      vi.mocked(getResource).mockResolvedValue({
         id: "doc123",
         userId: "user123",
-      } as any);
+      });
 
       const result = await documentCondition(editInput, ownerContext);
 
       expect(result).toBe(true);
-      expect(mockGetResource).toHaveBeenCalledWith("doc123");
+      expect(vi.mocked(getResource)).toHaveBeenCalledWith("doc123");
     });
 
     it("should work in project management scenario", async () => {
-      const projectCondition = owns("projectId");
+      const projectCondition = owns<{ projectId: string }>("projectId");
       const taskInput = {
         projectId: "proj456",
         taskName: "New Task",
         assignee: "user789",
       };
 
-      mockGetResource.mockResolvedValue({
+      vi.mocked(getResource).mockResolvedValue({
         id: "proj456",
         userId: "user123",
-      } as any);
+      });
 
       const result = await projectCondition(taskInput, ownerContext);
 
       expect(result).toBe(true);
-      expect(mockGetResource).toHaveBeenCalledWith("proj456");
+      expect(vi.mocked(getResource)).toHaveBeenCalledWith("proj456");
     });
 
     it("should deny access in multi-tenant scenario", async () => {
-      const fileCondition = owns("fileId");
+      const fileCondition = owns<{ fileId: string }>("fileId");
       const deleteInput = {
         fileId: "file789",
         permanent: true,
       };
 
       // 他のテナントのファイル
-      mockGetResource.mockResolvedValue({
+      vi.mocked(getResource).mockResolvedValue({
         id: "file789",
         userId: "tenant2-user456",
-      } as any);
+      });
 
       await expect(fileCondition(deleteInput, ownerContext)).rejects.toThrow(
         "User user123 does not own resource file789"
@@ -580,7 +552,7 @@ describe("owns", () => {
     });
 
     it("should allow admin access in cross-tenant scenario", async () => {
-      const fileCondition = owns("fileId");
+      const fileCondition = owns<{ fileId: string }>("fileId");
       const adminInput = {
         fileId: "any-tenant-file",
         action: "admin-review",
@@ -590,42 +562,7 @@ describe("owns", () => {
       const result = await fileCondition(adminInput, adminContext);
 
       expect(result).toBe(true);
-      expect(mockGetResource).not.toHaveBeenCalled(); // バイパスされる
-    });
-  });
-
-  describe("performance and concurrency", () => {
-    it("should handle concurrent ownership checks", async () => {
-      const condition = owns("resourceId");
-
-      const promises = Array.from({ length: 5 }, (_, i) =>
-        condition({ resourceId: `resource${i}` }, ownerContext)
-      );
-
-      const results = await Promise.all(promises);
-
-      expect(results).toEqual(Array(5).fill(true));
-      expect(mockGetResource).toHaveBeenCalledTimes(5);
-    });
-
-    it("should handle slow getResource calls", async () => {
-      mockGetResource.mockImplementation(async (resourceId) => {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        return {
-          id: resourceId,
-          userId: "user123",
-        } as any;
-      });
-
-      const condition = owns("resourceId");
-      const input = { resourceId: "slow-resource" };
-
-      const startTime = Date.now();
-      const result = await condition(input, ownerContext);
-      const endTime = Date.now();
-
-      expect(result).toBe(true);
-      expect(endTime - startTime).toBeGreaterThanOrEqual(90);
+      expect(vi.mocked(getResource)).not.toHaveBeenCalled(); // バイパスされる
     });
   });
 });

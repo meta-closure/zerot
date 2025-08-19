@@ -1,35 +1,36 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { smartContract } from "~/templates/smart-contract";
-import { ContractOptions } from "~/core/types";
+import { smartContract } from "@/templates/smart-contract";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// モック関数
-vi.mock("~/conditions/auth", () => ({
+// モック設定（関数参照ではなく、実装を直接記述）
+vi.mock("@/conditions/auth", () => ({
   auth: vi.fn((role?: string) => vi.fn().mockResolvedValue(true)),
 }));
 
-vi.mock("~/conditions/owns", () => ({
-  owns: vi.fn((field) => vi.fn().mockResolvedValue(true)),
+vi.mock("@/conditions/owns", () => ({
+  owns: vi.fn((field: string) => vi.fn().mockResolvedValue(true)),
 }));
 
-vi.mock("~/conditions/validation", () => ({
-  validates: vi.fn((schema) => vi.fn().mockReturnValue({})),
-  returns: vi.fn((schema) => vi.fn().mockReturnValue(true)),
+vi.mock("@/conditions/validation", () => ({
+  validates: vi.fn((schema: any) => vi.fn().mockReturnValue({})),
+  returns: vi.fn((schema: any) => vi.fn().mockReturnValue(true)),
 }));
 
-vi.mock("~/conditions/rate-limit", () => ({
-  rateLimit: vi.fn((operation, limit) => vi.fn().mockResolvedValue(true)),
+vi.mock("@/conditions/rate-limit", () => ({
+  rateLimit: vi.fn((operation: string, limit: number) =>
+    vi.fn().mockResolvedValue(true)
+  ),
 }));
 
-vi.mock("~/conditions/audit", () => ({
-  auditLog: vi.fn((operation) => vi.fn().mockResolvedValue(true)),
+vi.mock("@/conditions/audit", () => ({
+  auditLog: vi.fn((operation: string) => vi.fn().mockResolvedValue(true)),
 }));
 
 // モック関数をインポート
-import { auth } from "~/conditions/auth";
-import { owns } from "~/conditions/owns";
-import { validates, returns } from "~/conditions/validation";
-import { rateLimit } from "~/conditions/rate-limit";
-import { auditLog } from "~/conditions/audit";
+import { auditLog } from "@/conditions/audit";
+import { auth } from "@/conditions/auth";
+import { owns } from "@/conditions/owns";
+import { rateLimit } from "@/conditions/rate-limit";
+import { returns, validates } from "@/conditions/validation";
 
 describe("smartContract", () => {
   beforeEach(() => {
@@ -111,13 +112,14 @@ describe("smartContract", () => {
 
         operations.forEach((operation) => {
           vi.clearAllMocks();
-          smartContract({
+          const contract = smartContract({
             operation,
             resource: "document",
             visibility: "private",
           });
 
           expect(auth).toHaveBeenCalledWith("user");
+          expect(contract.requires?.length).toBeGreaterThan(0);
         });
       });
 
@@ -126,18 +128,19 @@ describe("smartContract", () => {
 
         operationsWithOwnership.forEach((operation) => {
           vi.clearAllMocks();
-          smartContract({
+          const contract = smartContract({
             operation,
             resource: "document",
             visibility: "private",
           });
 
           expect(owns).toHaveBeenCalledWith("documentId");
+          expect(contract.requires?.length).toBeGreaterThan(0);
         });
       });
 
       it("should not require ownership check for create operations", () => {
-        smartContract({
+        const contract = smartContract({
           operation: "create",
           resource: "document",
           visibility: "private",
@@ -145,6 +148,7 @@ describe("smartContract", () => {
 
         expect(auth).toHaveBeenCalledWith("user");
         expect(owns).not.toHaveBeenCalled();
+        expect(contract.requires?.length).toBeGreaterThan(0);
       });
     });
 
@@ -154,13 +158,14 @@ describe("smartContract", () => {
 
         operations.forEach((operation) => {
           vi.clearAllMocks();
-          smartContract({
+          const contract = smartContract({
             operation,
             resource: "system",
             visibility: "admin",
           });
 
           expect(auth).toHaveBeenCalledWith("admin");
+          expect(contract.requires?.length).toBeGreaterThan(0);
         });
       });
 
@@ -183,23 +188,25 @@ describe("smartContract", () => {
 
   describe("operation-based validation", () => {
     it("should include input validation for create operations", () => {
-      smartContract({
+      const contract = smartContract({
         operation: "create",
         resource: "user",
         visibility: "public",
       });
 
       expect(validates).toHaveBeenCalledWith(expect.any(Object));
+      expect(contract.requires?.length).toBeGreaterThan(0);
     });
 
     it("should include input validation for update operations", () => {
-      smartContract({
+      const contract = smartContract({
         operation: "update",
         resource: "user",
         visibility: "private",
       });
 
       expect(validates).toHaveBeenCalledWith(expect.any(Object));
+      expect(contract.requires?.length).toBeGreaterThan(0);
     });
 
     it("should not include input validation for read operations", () => {
@@ -226,7 +233,7 @@ describe("smartContract", () => {
   describe("rate limiting", () => {
     it("should include rate limiting when specified", () => {
       const rateLimit_Value = 50;
-      smartContract({
+      const contract = smartContract({
         operation: "create",
         resource: "message",
         visibility: "private",
@@ -234,6 +241,7 @@ describe("smartContract", () => {
       });
 
       expect(rateLimit).toHaveBeenCalledWith("create_message", rateLimit_Value);
+      expect(contract.requires?.length).toBeGreaterThan(0);
     });
 
     it("should not include rate limiting when not specified", () => {
@@ -251,7 +259,7 @@ describe("smartContract", () => {
 
       testCases.forEach((limit) => {
         vi.clearAllMocks();
-        smartContract({
+        const contract = smartContract({
           operation: "update",
           resource: "profile",
           visibility: "private",
@@ -259,6 +267,7 @@ describe("smartContract", () => {
         });
 
         expect(rateLimit).toHaveBeenCalledWith("update_profile", limit);
+        expect(contract.requires?.length).toBeGreaterThan(0);
       });
     });
 
@@ -283,13 +292,14 @@ describe("smartContract", () => {
       operations.forEach((operation) => {
         visibilities.forEach((visibility) => {
           vi.clearAllMocks();
-          smartContract({
+          const contract = smartContract({
             operation,
             resource: "test",
             visibility,
           });
 
           expect(auditLog).toHaveBeenCalledWith(`${operation}_test`);
+          expect(contract.ensures?.length).toBeGreaterThan(0);
         });
       });
     });
@@ -320,46 +330,50 @@ describe("smartContract", () => {
 
       testCases.forEach(({ operation, resource, expected }) => {
         vi.clearAllMocks();
-        smartContract({
+        const contract = smartContract({
           operation,
           resource,
           visibility: "public",
         });
 
         expect(auditLog).toHaveBeenCalledWith(expected);
+        expect(contract.ensures?.length).toBeGreaterThan(0);
       });
     });
   });
 
   describe("output validation", () => {
     it("should include output validation for create operations", () => {
-      smartContract({
+      const contract = smartContract({
         operation: "create",
         resource: "user",
         visibility: "public",
       });
 
       expect(returns).toHaveBeenCalledWith(expect.any(Object));
+      expect(contract.ensures?.length).toBeGreaterThan(0);
     });
 
     it("should include output validation for read operations", () => {
-      smartContract({
+      const contract = smartContract({
         operation: "read",
         resource: "user",
         visibility: "public",
       });
 
       expect(returns).toHaveBeenCalledWith(expect.any(Object));
+      expect(contract.ensures?.length).toBeGreaterThan(0);
     });
 
     it("should include output validation for update operations", () => {
-      smartContract({
+      const contract = smartContract({
         operation: "update",
         resource: "user",
         visibility: "private",
       });
 
       expect(returns).toHaveBeenCalledWith(expect.any(Object));
+      expect(contract.ensures?.length).toBeGreaterThan(0);
     });
 
     it("should not include output validation for delete operations", () => {
@@ -379,7 +393,7 @@ describe("smartContract", () => {
 
       resources.forEach((resource) => {
         vi.clearAllMocks();
-        smartContract({
+        const contract = smartContract({
           operation: "read",
           resource,
           visibility: "private",
@@ -387,6 +401,8 @@ describe("smartContract", () => {
 
         expect(owns).toHaveBeenCalledWith(`${resource}Id`);
         expect(auditLog).toHaveBeenCalledWith(`read_${resource}`);
+        expect(contract.requires?.length).toBeGreaterThan(0);
+        expect(contract.ensures?.length).toBeGreaterThan(0);
       });
     });
 
@@ -403,6 +419,7 @@ describe("smartContract", () => {
 
         expect(contract).toBeDefined();
         expect(owns).toHaveBeenCalledWith(`${resource}Id`);
+        expect(contract.requires?.length).toBeGreaterThan(0);
       });
     });
   });
