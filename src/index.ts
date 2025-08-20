@@ -1,4 +1,11 @@
 /**
+ * Zerot: Design by Contract for TypeScript
+ * Main entry point with all exports
+ */
+
+// ===== CORE CONTRACT SYSTEM =====
+
+/**
  * Exports the main `contract` decorator for applying pre-conditions, post-conditions, and invariants.
  * @module core/contract
  */
@@ -16,8 +23,7 @@ export {
 } from "./core/errors";
 
 /**
- * Exports core types and interfaces used throughout the contract system,
- * including `AuthContext`, `ContractOptions`, and various condition types.
+ * Exports core types and interfaces used throughout the contract system.
  * @module core/types
  */
 export type {
@@ -35,11 +41,13 @@ export type {
  * Exports utility functions for working with authentication context and resources.
  * @module core/types
  */
-export { getAuthContext, getResource } from "./core/types";
+export { getAuthContext, getResource, isValidator } from "./core/types";
+
+// ===== FRAMEWORK INTEGRATION =====
 
 /**
  * Exports adapter-related classes and utilities for framework integration.
- * @module core/adapters
+ * @module core/adapters/base
  */
 export { AdapterRegistry, BaseAdapter } from "./core/adapters/base";
 export type { ZerotAdapter } from "./core/adapters/base";
@@ -49,10 +57,21 @@ export type { ZerotAdapter } from "./core/adapters/base";
  * @module core/adapters/nextjs
  */
 export {
+  createCookieOnlyAdapter,
+  createCustomSessionAdapter,
+  createJWTAdapter,
   createNextjsAdapter,
+  createZerotApiHandler,
+  isNextjsEnvironment,
+  logAdapterStatus,
   NextjsAdapter,
+  NextjsSessionUtils,
   withZerotContext,
 } from "./core/adapters/nextjs";
+
+export type { NextjsAdapterOptions } from "./core/adapters/nextjs";
+
+// ===== REQUEST CONTEXT MANAGEMENT =====
 
 /**
  * Exports request context management utilities.
@@ -61,12 +80,21 @@ export {
 export {
   clearRequestContext,
   createRequestContext,
+  getAuthContextFromRequest,
+  getContextValue,
   getRequestContext,
+  getRequestContextSafe,
+  getRequestMetadata,
+  hasRequestContext,
+  setContextValue,
   setRequestContext,
+  updateRequestContext,
   withRequestContext,
 } from "./core/context";
 
-// Conditions
+export type { RequestContext } from "./core/context";
+
+// ===== BUILT-IN SECURITY CONDITIONS =====
 
 /**
  * Exports the `auth` condition for authentication and role-based access control.
@@ -87,12 +115,14 @@ export { owns } from "./conditions/owns";
 export { returns, validates } from "./conditions/validation";
 
 /**
- * Exports the `rateLimit` condition for controlling operation frequency.
+ * Exports the `rateLimit` condition for controlling operation frequency and utility functions.
  * @module conditions/rate-limit
  */
 export {
+  checkRateLimit,
   clearAllRateLimits,
   clearRateLimit,
+  getAllRateLimits,
   getRateLimitStatus,
   rateLimit,
 } from "./conditions/rate-limit";
@@ -109,7 +139,7 @@ export { auditLog, auditLogFailure } from "./conditions/audit";
  */
 export { businessRule } from "./conditions/business-rules";
 
-// Templates
+// ===== CONTRACT TEMPLATES =====
 
 /**
  * Exports `ContractTemplates` which provides predefined contract configurations for common use cases.
@@ -133,7 +163,7 @@ export {
  */
 export { smartContract } from "./templates/smart-contract";
 
-// Configuration
+// ===== CONFIGURATION =====
 
 /**
  * Exports configuration utilities and presets.
@@ -150,41 +180,57 @@ export {
 export type {
   AuditEvent,
   AuditLogger,
+  ConfigChangeEvent,
+  ConfigChangeListener,
+  Environment,
+  LogLevel,
   RateLimitStore,
   ZerotConfig,
 } from "./config";
 
-// Note: The following exports are commented out as the corresponding modules
-// were not provided in the conversation. Uncomment them when these modules are available.
+// ===== DEVELOPMENT & DEBUGGING TOOLS =====
 
-// Utils (Debugger, Performance, Optimizer)
-// /**
-//  * Exports `ContractDebugger` for logging and reporting contract execution history in development.
-//  * @module utils/debugger
-//  */
-// export { ContractDebugger } from "./utils/debugger";
+/**
+ * Exports contract debugging utilities for development mode.
+ * @module utils/debugger
+ */
+export { ContractDebugger } from "./utils/debugger";
 
-// /**
-//  * Exports `ContractPerformanceMonitor` for measuring and reporting contract execution performance.
-//  * @module utils/performance
-//  */
-// export { ContractPerformanceMonitor } from "./utils/performance";
+/**
+ * Exports performance monitoring utilities.
+ * @module utils/performance
+ */
+export { ContractPerformanceMonitor } from "./utils/performance";
 
-// /**
-//  * Exports `OptimizedContractSystem` for advanced contract optimization features.
-//  * @module utils/optimizer
-//  */
-// export { OptimizedContractSystem } from "./utils/optimizer";
+/**
+ * Exports metrics collection utilities.
+ * @module utils/metrics
+ */
+export { Metrics } from "./utils/metrics";
 
-// Integrations
-// /**
-//  * Exports `createServerAction` for integrating contracts with Next.js Server Actions.
-//  * @module integrations/server-actions
-//  */
-// export { createServerAction } from "./integrations/server-actions";
+/**
+ * Exports utility functions for delays and common operations.
+ * @module utils/delay
+ */
+export { delay } from "./utils/delay";
 
-// /**
-//  * Exports `withContractMiddleware` for integrating contracts with Next.js Middleware.
-//  * @module integrations/nextjs
-//  */
-// export { withContractMiddleware } from "./integrations/nextjs";
+/**
+ * Exports logging utilities.
+ * @module utils/logger
+ */
+export { logger } from "./utils/logger";
+export type { Logger } from "./utils/logger";
+
+/**
+ * Exports contract optimization utilities.
+ * @module utils/optimizer
+ */
+export { OptimizedContractSystem } from "./utils/optimizer";
+
+// ===== PACKAGE METADATA =====
+
+/**
+ * Package version and metadata
+ */
+export const VERSION = "1.0.2";
+export const PACKAGE_NAME = "zerot";
